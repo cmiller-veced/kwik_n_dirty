@@ -51,6 +51,7 @@ def get_definition_schemas_petstore():
 
 
 def get_endpoint_locations():
+  try:
     # by subtracting
     rs = raw_swagger(local.swagger.petstore)       # 
     top_level_keys = 'swagger info host basePath tags schemes securityDefinitions externalDocs definitions'.split()
@@ -60,7 +61,20 @@ def get_endpoint_locations():
     all_keys = top_level_keys + ep_keys + param_keys + schema_keys
     for key in all_keys:
         delete_key(rs, key)
+
+    # transform list-of-dicts to dict.
+    jdoc = rs
+    for path in jdoc['paths']:
+        for verb in jdoc['paths'][path]:
+            assert len(jdoc['paths'][path][verb]) == 1
+            assert 'parameters' in jdoc['paths'][path][verb]
+            new = {}
+            for param in jdoc['paths'][path][verb]['parameters']:
+                new.update({param['name']: param['in']})
+            jdoc['paths'][path][verb]['parameters'] = new
     return rs
+  finally:
+    globals().update(locals())
 
 def test_endpoint_locations():
   try:
@@ -69,9 +83,7 @@ def test_endpoint_locations():
         for verb in jdoc[path]:
             assert len(jdoc[path][verb]) == 1
             assert 'parameters' in jdoc[path][verb]
-            for param in jdoc[path][verb]['parameters']:
-                assert len(param) == 2
-                assert sorted(list(param)) == ['in', 'name']
+            print(path, verb, jdoc[path][verb]['parameters'])
   finally:
     globals().update(locals())
 
@@ -230,6 +242,202 @@ def test_endpoint_schema_validation():
   try:
     """
     """
+    endpoint_locations = get_endpoint_locations()['paths']
+    # TODO: useit
+    jdoc = get_schemas()['paths']
+    for endpoint in jdoc:
+        for verb in jdoc[endpoint]:
+            es = endpoint_schema(endpoint, verb)
+            loc = endpoint_locations[endpoint][verb]['parameters']
+
+            print(endpoint, verb)
+            print(es)
+            print('---------------------------------------')
+            print(loc)
+
+            validator = Draft7Validator(es, format_checker=FormatChecker())
+            samples = test_parameters[endpoint][verb]
+            for thing in samples['good']:
+                x = thing
+
+                assert validator.is_valid(x)
+                if thing:
+                    gthing = thing
+            for thing in samples['bad']: 
+                assert not validator.is_valid(thing)
+            # TODO: call the endpoint with the params
+            # need other info from swagger.
+            other_info = endpoint_info(endpoint, verb)
+            assert other_info is None
+#            print(other_info)
+            print()
+
+#             di = dict(
+#                 endpoint_info=dict(endpoint=endpoint, verb=verb),
+#                 parameters=dict(
+#                     body={},
+#                     headers={},
+#                     path={},
+#                     query={},
+#                 ),
+#                 #                foo=2,
+#             )
+#             c = Combined(di)
+# 
+#             # exp
+#             if 'properties' in es:
+#                 for prop in es['properties']:
+#                     assert 'in' not in prop
+#             if 'in' in es:
+#                 print('x'*66)
+#                 di['parameters'][es['in']] = True
+#                 print(es['in'])
+#                 print('x'*66)
+#             if verb in ['post', 'put']:
+#                 di['parameters']['body'] = True
+# #            print('   ', di['parameters'])
+#             print()
+
+#             kw = {}
+#             url = local.api_base.petstore + endpoint
+#             if di['parameters']['body'] == True:
+#                 kw['data'] = gthing    # give the Request a body
+
+    userId = 2314345670987
+    username = f'user{userId}'
+
+    with httpx.Client() as client:
+        if 1:
+            # endpoint #
+            (endpoint, verb) = ('/user', 'post')
+            url = local.api_base.petstore + endpoint   # cmn
+
+            # parameters #
+            kd = {'id': userId, 'username': username}
+            request_params = dict(headers=common.headers.content_type_json, json=kd)
+            # method == post => json in request_params
+    #                    and => header
+
+            request = httpx.Request(verb, url, **request_params)
+            response = client.send(request)
+            assert response.is_success
+
+        if 1:
+            # endpoint #
+            (endpoint, verb) = (f'/user/{username}','get')
+            (endpoint, verb) = ('/user/{username}','get')
+            url = local.api_base.petstore + endpoint   # cmn
+
+            # parameters #
+            # path parameter #
+            kd = {'username': username}
+            # insert into url
+            endpoint = endpoint.replace('username', kd['username']) .replace('{', '') .replace('}', '')
+#            kd.pop('username')
+            # only param goes to url
+            url = local.api_base.petstore + endpoint   # cmn
+
+            request = httpx.Request(verb, url)
+            response = client.send(request)  
+            assert response.is_success
+
+  finally:
+    globals().update(locals())
+    endpoint, verb = '/user/{username}', 'put'        # OK
+    endpoint, verb = '/user', 'post'                  # OK
+    endpoint, verb = '/user/createWithArray', 'post'  # OK
+    endpoint, verb = '/user/{username}', 'get'        # OK bad data 
+    endpoint, verb = '/pet/{petId}/uploadImage', 'post'   #  bad sample data
+    endpoint, verb = '/user/login', 'get'             # OK 
+    endpoint, verb = '/pet/{petId}', 'get'   # OK bad data 
+    endpoint, verb = '/pet/findByTags', 'get'   #  bad data
+    endpoint, verb = '/pet/findByStatus', 'get'   #  list data
+    endpoint, verb = '/pet', 'post'   # OK
+    endpoint, verb = '/pet', 'put'   # OK
+    endpoint, verb = '/pet/{petId}', 'post'   #  unsupported Media Type
+    endpoint, verb = '/pet/{petId}', 'delete'   # validation failure
+    endpoint, verb = '/store/inventory', 'get'   # validation failure
+    endpoint, verb = '/store/order', 'post'   # validation failure
+    endpoint, verb = '/store/order/{orderId}', 'delete'   #  404 Not Found
+    endpoint, verb = '/store/order/{orderId}', 'get'   #  404 Not Found
+    
+    samples = test_parameters[endpoint][verb]
+    globals().update(locals())
+
+    for thing in samples['good']:
+
+        (url, request_params) = populate_request(endpoint, verb, thing)
+
+        request = httpx.Request(verb, url, **request_params)
+        with httpx.Client(base_url=local.api_base.petstore) as client:   # 
+            response = client.send(request)  
+            globals().update(locals())
+            assert response.is_success
+            print('uhoo', request_params)
+
+
+def populate_request(endpoint, verb, thing):
+  try:
+    loc = endpoint_locations[endpoint][verb]['parameters']
+    if type(thing) in [str, int]:
+        assert len(loc) == 1
+        (pname, ploc) = list(loc.items())[0]
+        if ploc == 'path':
+            endpoint = endpoint.replace(pname, str(thing)) .replace('{', '') .replace('}', '')
+            url = local.api_base.petstore + endpoint   # cmn
+            return (url, {})
+
+
+    if loc == {'body': 'body'}:
+        url = local.api_base.petstore + endpoint   # cmn
+        return (url, dict(json=thing))
+
+    request_params = {}
+    query = {}
+    form_data = {}
+    kw = {}
+    to_delete = []
+    for param in thing:
+        plocation = loc[param]
+        print(plocation)
+        if plocation == 'path':
+            ep0 = endpoint
+            ep1 = endpoint.replace(param, str(thing[param]))\
+                    .replace('{', '') .replace('}', '')
+            endpoint = ep1
+            to_delete.append(param)
+        elif plocation == 'query':
+            query.update({param: thing[param]})
+        elif plocation == 'formData':
+            form_data.update({param: thing[param]})
+
+#         if param == 'body':
+#             assert 'body' ==  loc[param]
+#             kw['json'] = thing['body']
+#             to_delete.append(param)
+    for pname in to_delete:
+        thing.pop(pname)
+    print(thing)
+    request_params.update({'params': query})
+    request_params.update({'json': form_data})
+    # populate the Request
+#    request_params = {'parameters': query}
+    url = local.api_base.petstore + endpoint   # cmn
+    return (url, request_params)
+  finally:
+    globals().update(locals())
+
+
+
+class common:
+    class headers:
+        content_type_json = {'Content-Type': 'application/json'}
+
+
+
+def petstore_validate_and_call1():
+  try:
+    # TODO: useit
     jdoc = get_schemas()['paths']
     for endpoint in jdoc:
         for verb in jdoc[endpoint]:
@@ -244,60 +452,9 @@ def test_endpoint_schema_validation():
                     gthing = thing
             for thing in samples['bad']: 
                 assert not validator.is_valid(thing)
-            # TODO: call the endpoint with the params
-            # need other info from swagger.
-            other_info = endpoint_info(endpoint, verb)
-            di = dict(
-                endpoint_info=dict(endpoint=endpoint, verb=verb),
-                parameters=dict(
-                    body={},
-                    headers={},
-                    path={},
-                    query={},
-                ),
-                #                foo=2,
-            )
-            c = Combined(di)
-
-            # exp
-            if 'properties' in es:
-                for prop in es['properties']:
-                    assert 'in' not in prop
-            if 'in' in es:
-                print('x'*66)
-                di['parameters'][es['in']] = True
-                print(es['in'])
-                print('x'*66)
-            if verb in ['post', 'put']:
-                di['parameters']['body'] = True
-            print('   ', di['parameters'])
-            print()
-
-            kw = {}
-            url = local.api_base.petstore + endpoint
-            if di['parameters']['body'] == True:
-                kw['data'] = gthing    # give the Request a body
-
-    header = {'Content-Type: application/json'}   # 415 Unsupported Media Type
-    header = {'Content-Type': 'application/json'}   # 400 bad input
-    userId = 2314345670987
-    username = f'user{userId}'
-    with httpx.Client() as client:
-        if (endpoint, verb) == ('/user', 'post'):
-            kd = {'id': userId, 'username': username}
-            request = httpx.Request(verb, url, headers=header, json=kd)   # 200 OK
-            response = client.send(request)
-        verb = 'get'
-        endpoint = f'/user/{username}'
-        url = local.api_base.petstore + endpoint
-        urequest = httpx.Request(verb, url)
-        uresponse = client.send(urequest)   # 200 OK
-  finally:
-    globals().update(locals())
-
+    return 
+# TODO: useit
 # goal:  Make it work like this...
-def petstore_validate_and_call1():
-  try:
     with httpx.Client(base_url=local.api_base.petstore) as client:   # 
         for endpoint in endpoint_names(rs):
             for verb in endpoint:
