@@ -15,6 +15,7 @@ class local:       # our data.   (vs their data (in swagger))
         protein = '~/local/ebi/protein_openapi.json'
         libre =  '~/local/libretranslate/openapi.json'
         jira =  '~/local/jira/openapi.json'
+        obis =  '~/local/obis/obis_v3.yml'
     class api_base:
         petstore = 'https://petstore.swagger.io/v2'
         nws = 'https://api.weather.gov'
@@ -41,12 +42,13 @@ def endpoint_names(swagger_doc):
     return list(swagger_doc['paths'].keys())
 
 
-
+import yaml
 
 def raw_swagger(at_path):
     with open(os.path.expanduser(at_path)) as fh:
-        return json.load(fh)
-
+        if at_path.endswith('.json'):
+            return json.load(fh)
+        return yaml.safe_load(fh)
 
 # Validation using jsonschema #
 # ######################################################################## #
