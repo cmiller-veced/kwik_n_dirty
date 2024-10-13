@@ -14,7 +14,6 @@ from tools import (
     insert_endpoint_params,
     recur, delete_key, DotDict, namespacify,
 )
-#from some_code import schema_trans
 
 from copy import deepcopy
 from pprint import pprint
@@ -51,7 +50,6 @@ def get_definition_schemas_petstore():
 
 
 def get_endpoint_locations():
-  try:
     # by subtracting
     rs = raw_swagger(local.swagger.petstore)       # 
     top_level_keys = 'swagger info host basePath tags schemes securityDefinitions externalDocs definitions'.split()
@@ -73,8 +71,7 @@ def get_endpoint_locations():
                 new.update({param['name']: param['in']})
             jdoc['paths'][path][verb]['parameters'] = new
     return rs
-  finally:
-    globals().update(locals())
+
 
 def test_endpoint_locations():
   try:
@@ -136,10 +133,8 @@ def test_parameter_list_to_schema():
     assert validator.is_valid(x)
 
 
-#def get_parameter_schemas(): return
-
 # working
-if 1:      # insert info into request
+if 0:      # insert info into request
     interface_schema = dict(
         type='object',
         additionalProperties=False,
@@ -257,128 +252,33 @@ def test_endpoint_schema_validation():
 
             validator = Draft7Validator(es, format_checker=FormatChecker())
             samples = test_parameters[endpoint][verb]
+            print('---', samples['good'])
             for thing in samples['good']:
-                x = thing
+                print('---', thing)
+                assert validator.is_valid(thing)
+                
+                # OK.  Now we know it is valid.
+                # Hit the endpoint to see if it works.
+                (url, request_params) = populate_request(endpoint, verb, thing)
+                request = httpx.Request(verb, url, **request_params)
+                with httpx.Client(base_url=local.api_base.petstore) as client:   # 
+                    response = client.send(request)  
+                    assert response.is_success
 
-                assert validator.is_valid(x)
-                if thing:
-                    gthing = thing
+#                if thing: gthing = thing
             for thing in samples['bad']: 
                 assert not validator.is_valid(thing)
             # TODO: call the endpoint with the params
             # need other info from swagger.
-            other_info = endpoint_info(endpoint, verb)
-            assert other_info is None
-#            print(other_info)
             print()
-
-#             di = dict(
-#                 endpoint_info=dict(endpoint=endpoint, verb=verb),
-#                 parameters=dict(
-#                     body={},
-#                     headers={},
-#                     path={},
-#                     query={},
-#                 ),
-#                 #                foo=2,
-#             )
-#             c = Combined(di)
-# 
-#             # exp
-#             if 'properties' in es:
-#                 for prop in es['properties']:
-#                     assert 'in' not in prop
-#             if 'in' in es:
-#                 print('x'*66)
-#                 di['parameters'][es['in']] = True
-#                 print(es['in'])
-#                 print('x'*66)
-#             if verb in ['post', 'put']:
-#                 di['parameters']['body'] = True
-# #            print('   ', di['parameters'])
-#             print()
-
-#             kw = {}
-#             url = local.api_base.petstore + endpoint
-#             if di['parameters']['body'] == True:
-#                 kw['data'] = gthing    # give the Request a body
-
-    userId = 2314345670987
-    username = f'user{userId}'
-
-    with httpx.Client() as client:
-        if 1:
-            # endpoint #
-            (endpoint, verb) = ('/user', 'post')
-            url = local.api_base.petstore + endpoint   # cmn
-
-            # parameters #
-            kd = {'id': userId, 'username': username}
-            request_params = dict(headers=common.headers.content_type_json, json=kd)
-            # method == post => json in request_params
-    #                    and => header
-
-            request = httpx.Request(verb, url, **request_params)
-            response = client.send(request)
-            assert response.is_success
-
-        if 1:
-            # endpoint #
-            (endpoint, verb) = (f'/user/{username}','get')
-            (endpoint, verb) = ('/user/{username}','get')
-            url = local.api_base.petstore + endpoint   # cmn
-
-            # parameters #
-            # path parameter #
-            kd = {'username': username}
-            # insert into url
-            endpoint = endpoint.replace('username', kd['username']) .replace('{', '') .replace('}', '')
-#            kd.pop('username')
-            # only param goes to url
-            url = local.api_base.petstore + endpoint   # cmn
-
-            request = httpx.Request(verb, url)
-            response = client.send(request)  
-            assert response.is_success
-
   finally:
     globals().update(locals())
-    endpoint, verb = '/user/{username}', 'put'        # OK
-    endpoint, verb = '/user', 'post'                  # OK
-    endpoint, verb = '/user/createWithArray', 'post'  # OK
-    endpoint, verb = '/user/{username}', 'get'        # OK bad data 
-    endpoint, verb = '/pet/{petId}/uploadImage', 'post'   #  bad sample data
-    endpoint, verb = '/user/login', 'get'             # OK 
-    endpoint, verb = '/pet/{petId}', 'get'   # OK bad data 
-    endpoint, verb = '/pet/findByTags', 'get'   #  bad data
-    endpoint, verb = '/pet/findByStatus', 'get'   #  list data
-    endpoint, verb = '/pet', 'post'   # OK
-    endpoint, verb = '/pet', 'put'   # OK
-    endpoint, verb = '/pet/{petId}', 'post'   #  unsupported Media Type
-    endpoint, verb = '/pet/{petId}', 'delete'   # validation failure
-    endpoint, verb = '/store/inventory', 'get'   # validation failure
-    endpoint, verb = '/store/order', 'post'   # validation failure
-    endpoint, verb = '/store/order/{orderId}', 'delete'   #  404 Not Found
-    endpoint, verb = '/store/order/{orderId}', 'get'   #  404 Not Found
-    
-    samples = test_parameters[endpoint][verb]
-    globals().update(locals())
-
-    for thing in samples['good']:
-
-        (url, request_params) = populate_request(endpoint, verb, thing)
-
-        request = httpx.Request(verb, url, **request_params)
-        with httpx.Client(base_url=local.api_base.petstore) as client:   # 
-            response = client.send(request)  
-            globals().update(locals())
-            assert response.is_success
-            print('uhoo', request_params)
 
 
-def populate_request(endpoint, verb, thing):
+def populate_request(endpoint, verb, data):
   try:
-    loc = endpoint_locations[endpoint][verb]['parameters']
+    loc = get_endpoint_locations()['paths'][endpoint][verb]['parameters']
+    thing = deepcopy(data)
     if type(thing) in [str, int]:
         assert len(loc) == 1
         (pname, ploc) = list(loc.items())[0]
@@ -386,7 +286,6 @@ def populate_request(endpoint, verb, thing):
             endpoint = endpoint.replace(pname, str(thing)) .replace('{', '') .replace('}', '')
             url = local.api_base.petstore + endpoint   # cmn
             return (url, {})
-
 
     if loc == {'body': 'body'}:
         url = local.api_base.petstore + endpoint   # cmn
@@ -418,21 +317,42 @@ def populate_request(endpoint, verb, thing):
     for pname in to_delete:
         thing.pop(pname)
     print(thing)
-    request_params.update({'params': query})
-    request_params.update({'json': form_data})
-    # populate the Request
-#    request_params = {'parameters': query}
+    if query:
+        request_params.update({'params': query})
+    if form_data:
+        # request_params.update({'data': form_data})      # 415 Unsupported Media Type
+        # request_params['headers'] = common.headers.form_data  # 500 Server Error
+        """
+        <body><h2>HTTP ERROR 500</h2>
+<p>Problem accessing /v2/pet/1234/uploadImage. Reason:
+<pre>    Server Error</pre></p><h3>Caused by:</h3><pre>javax.ws.rs.WebApplicationException: java.lang.IllegalArgumentException: Error parsing media type 'form-data'
+
+{"id":3,"name":"rocky","photoUrls":[],"tags":[]}
+otoh.
+Apparently the petstore server is known to be buggy.
+Probably not worth spending much time on debugging it.
+        """
+        form_data['id'] = 1234
+
+        request_params.update({'json': form_data})      # 415 Unsupported Media Type
+        request_params['headers'] = common.headers.content_type_json  # 
+        # 415
+
+
+#    if request_params['json']:
+ #       request_params['headers'] = common.headers.content_type_json
+
     url = local.api_base.petstore + endpoint   # cmn
     return (url, request_params)
   finally:
-    globals().update(locals())
-
+    pass
+#    globals().update(locals())
 
 
 class common:
     class headers:
         content_type_json = {'Content-Type': 'application/json'}
-
+        form_data = {'Content-Type': 'form-data'}
 
 
 def petstore_validate_and_call1():
@@ -469,10 +389,9 @@ def petstore_validate_and_call1():
                     send_params
                     assert NOT_it_worked
   finally:
-    globals().update(locals())
+    pass
 
 def endpoint_info(endpoint, verb):
-  try:
     """Pull endpoint info relevant for the API call.
     """
     jdoc = get_schemas()['paths']
@@ -480,15 +399,13 @@ def endpoint_info(endpoint, verb):
         for v in jdoc[ep]:
             if (endpoint, verb) == (ep, v):
                 s = jdoc[endpoint][verb]
-  finally:
-    globals().update(locals())
+    return None
 
 
 def petstore_endpoint_verbs(endpoint):
     rs = raw_swagger(local.swagger.petstore)
     with_refs = jsonref.loads(json.dumps(rs))
     thing = with_refs['paths'][endpoint]
-    globals().update(locals())
     return list(thing)
 
 def petstore_endpoint_verb_details(endpoint, verb):
@@ -496,126 +413,4 @@ def petstore_endpoint_verb_details(endpoint, verb):
     with_refs = jsonref.loads(json.dumps(rs))
     thing = with_refs['paths'][endpoint][verb]
     return thing
-
-
-# TODO: up until now I have been validating all parameters together.
-# BUT.
-# often each parameter gets its own schema and so could be validated
-# individually.
-# Q.  Maybe each param should be validated individually?
-# A.  The petstore API shows that parameters definitely need to be inserted
-# individually into the right place.  So maybe it makes sense to validate
-# individually but maybe not.
-# def schema_trans(vinfo): pass
-# def schema_trans(vinfo, verb):
-#   try:
-#     ins = defaultdict(set)
-#     in_locations = 'body path formData query header'.split()   # data re swagger
-#     for d in vinfo:   # tmp
-#         ins[d['in']].add(d['name'])
-#         assert d['in'] in in_locations
-#         assert 'in' in d
-# #        assert 'schema' in d
-#     if verb == 'post':
-#         assert all(d['in']=='body' for d in vinfo) or True
-#     assert all(d['in'] in in_locations for d in vinfo)
-#     # Not super informative but reveals some data relevant to swagger/etc.
-# 
-#     print('   ', len(vinfo))
-#     print('   ', dict(ins))
-#     from pprint import pprint
-# #    pprint(vinfo)
-#     print()
-# 
-#     return
-#   finally:
-#     globals().update(locals())
-
-
-# def petstore_validator(endpoint, verb):
-#   try:
-#     """Return a function to validata parameters for `endpoint`.
-#     """
-#     rs = raw_swagger(local.swagger.petstore)
-#     with_refs = jsonref.loads(json.dumps(rs))
-#     thing = with_refs['paths'][endpoint]
-#     jdoc = with_refs['paths'][endpoint][verb]
-#     vinfo = jdoc['parameters']
-#     schema = schema_trans(vinfo, verb)
-#     return schema
-# 
-#     is_valid = lambda ob: Draft7Validator(schema, format_checker=FormatChecker()).is_valid(ob)
-#     return is_valid
-#   finally:
-#     globals().update(locals())
-
-
-def petstore_investigate_endpoints():
-  try:
-    schemaless_params = set()
-    fu = set()
-    # inspect the swagger, carefully.
-    rs = raw_swagger(local.swagger.petstore)       # 
-    for endpoint in endpoint_names(rs):
-        print(endpoint)
-        verbs = petstore_endpoint_verbs(endpoint)
-        for verb in verbs:
-            print('   ', verb)
-            details = petstore_endpoint_verb_details(endpoint, verb)
-            if 1:
-                delete_key(details, 'xml')
-                delete_key(details, 'produces')
-                delete_key(details, 'consumes')
-                delete_key(details, 'summary')
-                delete_key(details, 'responses')
-                delete_key(details, 'tags')
-            for pram in details['parameters']:
-                pname = pram['name']
-                schema = pram['schema'] if 'schema' in pram else pram
-                # compensate for bad info in swagger file...
-                if pname == 'status':
-                    schema = rs['paths']['/pet/findByStatus']['get']['parameters'][0]
-                if pname == 'file':
-                    schema['type'] = 'string'
-                dv = Draft7Validator(schema, format_checker=FormatChecker())
-                sd = sample_data[pname]
-
-                if 'schema' in pram:
-                    schema = pram['schema']
-                has_schema = True if 'schema' in pram else False
-                print(f'      name: {pram["name"]}  in: {pram["in"]}')
-                if has_schema:
-                    assert pram["in"] == 'body'
-#                    print('                   ', list(schema))
-                if not has_schema:
-                    schemaless_params.add(pname)
-                    print('                   ', pram)
-
-                    # compensate for bad info in swagger file...
-                    if pname == 'status':
-                        pram = rs['paths']['/pet/findByStatus']['get']['parameters'][0]
-                    if pname == 'file':
-                        pram['type'] = 'string'
-
-                    dv = Draft7Validator(pram, format_checker=FormatChecker())
-                    sd = sample_data[pname]
-                    try:
-                        assert dv.is_valid(sd)
-                        flag = 'OK'
-                    except:
-                        flag = '---------------------------'
-                        fu.add(pname)
-                        if pname == 'file': return
-#                        if pname == 'status': return
-                    print('                   ', flag)
-        continue
-        break
-
-        thing = is_valid
-        print(endpoint, list(thing))
-        continue
-  finally:
-    globals().update(locals())
-
-
 
