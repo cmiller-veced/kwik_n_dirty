@@ -1,3 +1,4 @@
+import time
 import json
 import os
 from functools import singledispatch  # for heterogeneous recursive data structure
@@ -25,6 +26,40 @@ class local:       # our data.   (vs their data (in swagger))
         # Must run the server locally...
         # /Users/cary/Library/Python/3.9/bin/libretranslate
         jira = ''
+
+
+class common:
+    class headers:
+        class content_type:
+            json = {'Content-Type': 'application/json'}
+            form_data = {'Content-Type': 'form-data'}
+        class accept:
+            json = {'Accept': 'application/json'}
+
+# TODO: to tools
+import copy
+def altered_dict_list(list_of_dict, func):
+    return [func(d) for d in copy.deepcopy(list_of_dict)]
+
+# TODO: to tools
+def extract_from_dict_list(list_of_dict, key):
+    return {d['name']: d[key] for d in list_of_dict if key in d}
+
+
+# This works but needs good test.
+def retry_call(n=3, tfun=lambda i:i):
+    def _retry(func):
+        def __retry(url, verb, request_params):
+            response = func(url, verb, request_params)
+            if not response.is_success:   # TODO: make this a func??? to generalize.
+                i = 0
+                while i < n:
+                    i += 1
+                    time.sleep(tfun(i))
+                    response = func(url, verb, request_params)
+            return response
+        return __retry
+    return _retry
 
 
 def preprocess_schemas(schemas):
