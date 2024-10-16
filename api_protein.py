@@ -11,19 +11,10 @@ from tools import (
     retry_call,
     extract_from_dict_list,
 )
-from test_data_protein import test_parameters
-from pprint import pprint
-
-oddballs = set()   # TODO: remove
-ignore_endpoints = ['/']
-ignore_endpoints = ['/', '/das/s4entry']   # but revisit this one.
 
 class BadInput(Exception): pass
 
 def parameters_to_schema(parameters):
-    """
-    NOTE: `description` of parameters are excellent!
-    """
     return {
         'required': list(parameter_required(parameters)),  # TODO: this grabs False values.  FIX IT
         'parameters': parameter_schemas(parameters), 
@@ -41,49 +32,27 @@ def parameter_required(parameters):
 
 
 def protein_validator(endpoint, verb='get'):
-  try:
     """Return a function to validata parameters for `(endpoint, verb)`.
     """
-    rs = raw_swagger(local.swagger.protein)     # protein vs nws
+    rs = raw_swagger(local.swagger.protein)
     paths = jsonref.loads(json.dumps(rs))['paths']
-    thing = paths[endpoint][verb]
-    assert 'get' not in list(thing)
-    popping_keys = True
-    popping_keys = False
-    if popping_keys:
-        for key in 'tags summary description operationId responses'.split():
-            try:
-                thing.pop(key)
-            except KeyError:
-                pass
-    parameters = thing['parameters']
+    parameters = paths[endpoint][verb]['parameters']
     print(endpoint, verb, len(parameters))
     schema = parameters_to_schema(parameters)
-    is_valid = lambda ob: Draft7Validator(schema, format_checker=FormatChecker()).is_valid(ob)
-    return is_valid
-  finally:
-    is_valid.endpoint = endpoint
-    is_valid.verb = verb
-    is_valid.schema = schema
+    return lambda ob: Draft7Validator(schema, format_checker=FormatChecker()).is_valid(ob)
 
 
 @retry_call()
-def call(endpoint, verb, request_params):
+def call(endpoint, verb, params):
     """Call the endpoint+verb with request_params.
     """
-    (url, verb, request_params) = prepped(endpoint, verb, request_params)
+    (url, verb, request_params) = prepped(endpoint, verb, params)
     request = httpx.Request(verb, url, **request_params)
     with httpx.Client(base_url=local.api_base.protein) as client:
         return client.send(request)  
 
 
-def prepped(endpoint, verb, params):
-    (ep, request_params) = populate_request(endpoint, verb, params)
-    url = local.api_base.protein + ep
-    return (url, verb, request_params)
-
-
-def populate_request(endpoint, verb, args):
+def prepped(endpoint, verb, args):
     """
     # TODO: docstring
     parameters:  defined in swagger.
@@ -92,11 +61,11 @@ def populate_request(endpoint, verb, args):
     if type(args) is not dict:
         print('..................... BadInput ........................ ', args)
         raise BadInput()
+        # TODO: this is a problem with my test data.   FIX
     rs = raw_swagger(local.swagger.protein)
     paths = jsonref.loads(json.dumps(rs))['paths']
     things = paths[endpoint][verb]['parameters']
     location = parameter_locations(things)
-
     request_params = {}
     query = {}
     for arg in args:
@@ -108,11 +77,19 @@ def populate_request(endpoint, verb, args):
             query[arg] = args[arg]
     if query:
         request_params['params'] = query
-    return (endpoint, request_params)
+    return (local.api_base.protein + endpoint, verb, request_params)
 
 
 # test test test test test test test test test test test test test test test
 ##############################################################################
+from test_data_protein import test_parameters
+from pprint import pprint
+
+oddballs = set()   # TODO: remove
+# TODO:  but first, deal with the oddball in a constructive way.
+#    assert oddballs == {('/uniparc/sequence', 'post')}
+ignore_endpoints = ['/']
+ignore_endpoints = ['/', '/das/s4entry']   # but revisit this one.
 
 
 def protein_validate_and_call():
@@ -144,13 +121,16 @@ def protein_validate_and_call():
                         continue
                     assert not response.is_success
   finally:
-     #    assert oddballs == {('/uniparc/sequence', 'post')}
     pass
 
 
 # aside #
 ##############################################################################
 
+
+rs = raw_swagger(local.swagger.protein)
+paths = jsonref.loads(json.dumps(rs))['paths']
+assert len(paths) == 57
 
 def get_component_schemas_protein():    # EBI
     rs = raw_swagger(local.swagger.protein)
@@ -202,3 +182,9 @@ try:
 except NameError:
     pass
 
+# some keys found in endpoints
+# 'tags summary description operationId responses'.split():
+
+    """
+    NOTE: `description` of parameters are excellent!
+    """
