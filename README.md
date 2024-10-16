@@ -273,6 +273,14 @@ A. Start at the end and work backwards.  From POV of end user/programmer.
 - issue aware re the API   (possibly the swagger file but probably not).
 
 
+#### Another swagger API
+
+- https://api.obis.org/obis_v3.yml
+- https://api.obis.org/
+- server https://api.obis.org/obis_v3
+
+
+
 #### The wrong question.
 
 A common question on StackOverflow...
@@ -560,4 +568,79 @@ http://www.datascienceassn.org/sites/default/files/Walker%27s%20Data%20Science%2
 
 
 https://cmd2.readthedocs.io/en/0.9.9/alternatives.html
+
+
+#### bad things about DAO
+
+Typical scenario...  
+- DAO is written
+- It is the interpretation of a programmer.  Not a person famiilar with the
+  domain.
+- It does not change for about 2 years.  
+- because it is working code.
+- Then it gets thrown out.
+
+Result:  The beginner interpretation is set in stone, bugs and all.
+  Until 2 years later, when it gets thrown out in favor of a new interpretation., 
+  also in the DAO tradition.
+
+When the business users ask us to solve a given problem, we can do one of two
+things (or more).
+1.   solve the exact problem.
+2.   solve the exact problem while providing more general tools to solve
+     problems LIKE this one.
+
+Caveman Programming.
+DAOs OK for things that are not business logic, critical to the customer.
+OK for Infra?  I think not.  Look at infra code.  It is always (?) written in way
+that best solves the problem (haha!) even when it means having to learn tricky,
+picky systems;  github actions, Jenkins, ansible, etc.
+If we hand the client something to solve their deep problems and it is the
+interpretation of a beginner, we hamper their ability to solve business critical
+problems.
+
+The actual code is clearly an afterthought.
+
+
+#### A perfectly worthless DAO
+
+The class below encapsulates a set of parameters to a POST endpoint of some API.
+The endpoint requires several parameters, with specific types; str, list, etc.
+Can you see any problem with it?
+
+```
+   class Foo(PydanticBase):
+       param: dict
+```
+
+The information content of the class is exactly equivalent to saying, "It is
+a POST request.".
+When the code failed, the debugging programmer would have liked to get useful
+information from the class.  Unfortunately there is no useful information there.
+The programmer had to go and look 
+elsewhere
+--at the swagger file-- 
+to get the correct parameters.
+(there was no swagger in this case.  Or swagger wss generated from code,
+yielding worthless swagger.
+
+This sort of thing happens a lot.
+
+In reality, worthless would be an improvement.  This class subtracts value.
+
+
+#### Worse than worthless
+
+That complex way of doing nothing.
+
+```
+    def lazy_load(something):
+        def inner(blah):
+           return Flask.thing()  # something like this
+        return inner
+```
+
+
+
+
 
