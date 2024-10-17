@@ -38,6 +38,7 @@ class common:
 
 # TODO: to tools
 import copy
+import httpx
 def altered_dict_list(list_of_dict, func):
     return [func(d) for d in copy.deepcopy(list_of_dict)]
 
@@ -50,7 +51,11 @@ def extract_from_dict_list(list_of_dict, key):
 def retry_call(n=3, tfun=lambda i:i):
     def _retry(func):
         def __retry(url, verb, request_params):
-            response = func(url, verb, request_params)
+            try:
+                response = func(url, verb, request_params)
+            except (httpx.ReadTimeout, httpx.ConnectTimeout):
+                response = lambda:None         # quick & dirty hack
+                response.is_success = False    # quick & dirty hack
             if not response.is_success:   # TODO: make this a func??? to generalize.
                 i = 0
                 while i < n:
@@ -60,7 +65,10 @@ def retry_call(n=3, tfun=lambda i:i):
             return response
         return __retry
     return _retry
-
+# TODO: this whole retry thing is funky
+# this line...
+#                    response = func(url, verb, request_params)
+# appears twice and that is absurd.
 
 def preprocess_schemas(schemas):
     """
