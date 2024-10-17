@@ -1,32 +1,28 @@
-
-
 # valid UniProtKB accession
 
-proteins = {
-    'good': [
-        { 'accession': 'A2BC19', },
-        { 'accession': 'P12345', },
-        { 'accession': 'A0A023GPI8', },
-        { 'accession': 'P04637', },
-#        { 'accession': 'P62988', },    # 404
+valid_accession = [
+    { 'accession': 'A2BC19', },
+    { 'accession': 'P12345', },
+    { 'accession': 'A0A023GPI8', },
+    { 'accession': 'P04637', },
+]
+bad_key = [{'x':'xxxxxxx',},]
         
-    ],
-    'bad': [ 
-        [],
-        'xxxxxxx',
+#        { 'accession': 'P62988', },    # 404
+proteins = {
+    'good': valid_accession + [ 
+        {},
         { 'accession': 'xxxxxxxx', },
     ],
-}
-#proteins['bad'] = []
-proteins_accession = {
-    'good': proteins['good'],
-    'bad': [ ],
+    'bad': bad_key
 }
 
-epitope = {
-    'good': proteins['good'],
-    'bad': proteins['bad'],
+proteins_accession = {
+    'good': valid_accession,
+    'bad': bad_key + [{}],
 }
+
+epitope = proteins
 
 proteome = {
     'good': [
@@ -35,12 +31,33 @@ proteome = {
     'bad': proteins['bad'],
 }
 
+das_s4entry = {
+    'good': [{}, ],
+    'bad': [{'x':''}],
+}
+
+uniparc_sequence = {
+    'good': [
+        {'rfActive': 'true'}, 
+        {'rfActive': 'false'}, 
+        {'rfDbid': 'AAC02967,XP_006524055'}, 
+        {'rfDdtype': 'EMBL,RefSeq,Ensembl'}, 
+             
+     ],
+    'bad': [
+        {'rfActive': 'xxxxxxx'}, 
+        {'rfTaxId': 'xxxxxx'}, 
+        {'x': 'xxxxxx'}, 
+    ],
+}
 
 hgvs_examples = ["NM_000551.3", "NC_000012.12"]  # bad request
+hgvs_examples = ["c.88+2T>G",]  # invalid
+
 # https://hgvs-nomenclature.org/stable/recommendations/grammar/
 hgvs = {
     'good': [{'hgvs': thing} for thing in hgvs_examples],
-    'bad': [{}, ''],
+    'bad': bad_key + [{},],
 }
 
 
@@ -52,7 +69,9 @@ test_parameters = {
     '/proteomes': proteome ,
     '/proteomes/{upid}': proteome ,
     '/proteomics': proteome ,
+
+   '/das/s4entry': das_s4entry ,               # patched
+   '/uniparc/sequence': uniparc_sequence ,     # post
 #    '/variation/hgvs/{hgvs}': hgvs ,
 } 
-
 
