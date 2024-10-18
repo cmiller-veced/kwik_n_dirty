@@ -3,47 +3,17 @@ import json
 import os
 from functools import singledispatch  # for heterogeneous recursive data structure
 from types import SimpleNamespace
+import copy
 
+import yaml
 from jinja2 import Environment, PackageLoader, select_autoescape     # cross platform
 from jsonschema import Draft7Validator
-
-pet_swagger = 'https://petstore.swagger.io/v2/swagger.json'
-
-
-class local:       # our data.   (vs their data (in swagger))
-    class swagger:
-        petstore = '~/local/petstore/swagger.json'
-        nws = '~/local/nws/openapi.json'
-        protein = '~/local/ebi/protein_openapi.json'
-        libre =  '~/local/libretranslate/openapi.json'
-        jira =  '~/local/jira/openapi.json'
-        obis =  '~/local/obis/obis_v3.yml'
-    class api_base:
-        petstore = 'https://petstore.swagger.io/v2'
-        nws = 'https://api.weather.gov'
-        protein = 'https://www.ebi.ac.uk/proteins/api'
-        libre = 'https://libretranslate.com'     # ????
-        libre = 'http://localhost:5000'     # ????
-        # Must run the server locally...
-        # /Users/cary/Library/Python/3.9/bin/libretranslate
-        jira = ''
-
-
-class common:
-    class headers:
-        class content_type:
-            json = {'Content-Type': 'application/json'}
-            form_data = {'Content-Type': 'form-data'}
-        class accept:
-            json = {'Accept': 'application/json'}
-
-# TODO: to tools
-import copy
 import httpx
+
+
 def altered_dict_list(list_of_dict, func):
     return [func(d) for d in copy.deepcopy(list_of_dict)]
 
-# TODO: to tools
 def extract_from_dict_list(list_of_dict, key):
     return {d['name']: d[key] for d in list_of_dict if key in d}
 
@@ -86,7 +56,6 @@ def endpoint_names(swagger_doc):
     return list(swagger_doc['paths'].keys())
 
 
-import yaml
 
 def raw_swagger(at_path):
     with open(os.path.expanduser(at_path)) as fh:

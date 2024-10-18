@@ -1,19 +1,12 @@
 import json
-from collections import defaultdict
 
 import httpx
 import jsonref
 from jsonschema import FormatChecker
 
-from tools import (
-    raw_swagger, 
-    local,        # not a tool.  It is data.
-    common,        # not a tool.  It is data.
-    retry_call,
-    extract_from_dict_list,
-    dvalidator,
-    LocalValidationFailure,
-)
+from info import local
+from tools import (raw_swagger, retry_call, extract_from_dict_list,
+    dvalidator, LocalValidationFailure,)
 
 class NonTruthy(LocalValidationFailure): pass
 
@@ -91,6 +84,7 @@ def altered_raw_swagger(swagger_path):
 ##############################################################################
 from test_data_protein import test_parameters
 from pprint import pprint
+from collections import defaultdict
 
 
 # TODO: clarify messaging.
