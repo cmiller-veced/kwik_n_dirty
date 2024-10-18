@@ -1,35 +1,26 @@
 import json
-from functools import lru_cache
 
 import httpx      # follow up to requests
-import pandas      # similar to R data frames
 import jsonref     # cross platform
-import jsonschema     # cross platform
-from jsonschema import validate     # cross platform
 from jsonschema import (     # cross platform
     Draft7Validator,
     FormatChecker,
 )
 
+from info import local
 from tools import (
     raw_swagger, 
-    local,        # not a tool.  It is data.
     endpoint_names,
     insert_endpoint_params,
 )
-from some_code import schema_trans
 from test_data_nws import test_parameters, sample_query_params
 
+# TODO: fancy validators
+# eg start_date < end_date
 
-def get_component_schemas_nws():    # NWS
-    rs = raw_swagger(local.swagger.nws)
-    with_refs = jsonref.loads(json.dumps(rs))
-    components = with_refs['components']
-    for key in ['responses', 'headers', 'securitySchemes']:
-        components.pop(key)
-    parameters = components['parameters']
-    components['parameters'] = {key: parameters[key]['schema'] for key in parameters}
-    return components
+
+def schema_trans(schema_list):
+    return {'properties': {thing['name']: thing['schema'] for thing in schema_list} }
 
 
 def nws_validator(endpoint):
@@ -48,10 +39,22 @@ def nws_validator(endpoint):
     assert list(schema.keys()) == ['properties']
 #    print(endpoint, list(schema['properties'].keys()))
     is_valid = lambda ob: Draft7Validator(schema, format_checker=FormatChecker()).is_valid(ob)
-    is_valid.endpoint = endpoint
-    is_valid.schema = schema
+    is_valid = Draft7Validator(schema, format_checker=FormatChecker()).is_valid
+#    is_valid.endpoint = endpoint
+ #   is_valid.schema = schema
     return is_valid
 
+
+def nws_call(endpoint, params=None):
+    with httpx.Client(base_url=local.api_base.nws) as client:
+        r = client.get(endpoint, params=params)
+        assert r.status_code == 200
+    return r.json()
+
+
+# test
+# ############################################################################
+from functools import lru_cache
 
 def nws_validate_and_call():
   try:
@@ -60,7 +63,7 @@ def nws_validate_and_call():
         for ep in endpoint_names(rs):
             is_valid = nws_validator(ep)
             print(ep)
-            print(is_valid.endpoint)
+#            print(is_valid.endpoint)
             ep0 = ep
             if ep in test_parameters:
                 things = test_parameters[ep]
@@ -84,12 +87,6 @@ def nws_validate_and_call():
   finally:
     globals().update(locals())
 
-
-def nws_call(endpoint, params=None):
-    with httpx.Client(base_url=local.api_base.nws) as client:
-        r = client.get(endpoint, params=params)
-        assert r.status_code == 200
-    return r.json()
 
 
 # NWS data ##################################################################
@@ -151,41 +148,12 @@ def product_codes():
     return [d['productCode'] for d in things]
 
 
-# exp
-class NWS:
-    product_codes = product_codes()
-    zone_ids = zone_ids   # NOTE  zone_ids is very much like a static method.
-    # Which means a class consisting of all static methods is nothing more than
-    # a namespace.
-    # I think the same is true for class methods. IOW, a class having only
-    # static and class methods is a namespace.  Nothing more.
-    # and
-    # If you think about it, you realize that neither class nor static methods
-    # operate on instance data.
-    # Thus they are really a different animal than the usual image of methods as
-    # operating on client data.
-    # NO
-    #
-    zone_ids = classmethod(zone_ids) 
-    # TODO: but wait!!!!!!!
-    # both defs of zone_ids give an error...
-    # Traceback (most recent call last):
-    # File "<stdin>", line 1, in <module>
-    # TypeError: zone_ids() takes 0 positional arguments but 1 was given
-    # thus, zone_ids MUST be defined as...
-    @classmethod
-    def zone_ids(self):
-        return zone_ids()
-    # which is quite verbose.
-    # The way product_codes operates seems better.
-
-nws = NWS()
-
 # ^ NWS data ^ ###############################################################
 
 
 # Fetch a data set suitable for a pandas dataframe.
 # ############################################################################
+import pandas      # similar to R data frames
 
 
 def nws_series():
@@ -238,6 +206,48 @@ def nws_series():
     globals().update(locals())
 
 
-# TODO: fancy validators
-# eg start_date < end_date
+
+# aside
+# ############################################################################
+
+def get_component_schemas_nws():    # NWS
+    rs = raw_swagger(local.swagger.nws)
+    with_refs = jsonref.loads(json.dumps(rs))
+    components = with_refs['components']
+    for key in ['responses', 'headers', 'securitySchemes']:
+        components.pop(key)
+    parameters = components['parameters']
+    components['parameters'] = {key: parameters[key]['schema'] for key in parameters}
+    return components
+
+# exp
+class NWS:
+    product_codes = product_codes()
+    zone_ids = zone_ids   # NOTE  zone_ids is very much like a static method.
+    # Which means a class consisting of all static methods is nothing more than
+    # a namespace.
+    # I think the same is true for class methods. IOW, a class having only
+    # static and class methods is a namespace.  Nothing more.
+    # and
+    # If you think about it, you realize that neither class nor static methods
+    # operate on instance data.
+    # Thus they are really a different animal than the usual image of methods as
+    # operating on client data.
+    # NO
+    #
+    zone_ids = classmethod(zone_ids) 
+    # TODO: but wait!!!!!!!
+    # both defs of zone_ids give an error...
+    # Traceback (most recent call last):
+    # File "<stdin>", line 1, in <module>
+    # TypeError: zone_ids() takes 0 positional arguments but 1 was given
+    # thus, zone_ids MUST be defined as...
+    @classmethod
+    def zone_ids(self):
+        return zone_ids()
+    # which is quite verbose.
+    # The way product_codes operates seems better.
+
+nws = NWS()
+
 
