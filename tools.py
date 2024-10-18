@@ -5,6 +5,7 @@ from functools import singledispatch  # for heterogeneous recursive data structu
 from types import SimpleNamespace
 
 from jinja2 import Environment, PackageLoader, select_autoescape     # cross platform
+from jsonschema import Draft7Validator
 
 pet_swagger = 'https://petstore.swagger.io/v2/swagger.json'
 
@@ -473,5 +474,25 @@ class DotDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
+
+
+def dvalidator(local_validate): 
+    def local_is_valid(params):
+        try:
+            local_validate(params)
+            return True
+        except LocalValidationFailure:
+            return False
+
+    class D7V(Draft7Validator):
+        def is_valid(self, thing):
+            if not super().is_valid(thing):
+                return False
+            return local_is_valid(thing)
+        def validate(self, thing):
+            super().validate(thing)
+            return local_validate(thing)
+
+    return D7V
 
 

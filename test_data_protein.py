@@ -10,11 +10,11 @@ bad_key = [{'x':'xxxxxxx',},]
         
 #        { 'accession': 'P62988', },    # 404
 proteins = {
-    'good': valid_accession + [ 
+    'good': valid_accession,
+    'bad': bad_key + [ 
         {},
         { 'accession': 'xxxxxxxx', },
-    ],
-    'bad': bad_key
+    ]
 }
 
 proteins_accession = {
@@ -32,19 +32,24 @@ proteome = {
 }
 
 das_s4entry = {
-    'good': [{}, ],
-    'bad': [{'x':''}],
+    'good': [],
+    'bad': [{'x':''}, {}],
 }
 
+"""
+<Response [500 Internal Server Error]>
+>>> response.text
+'{"requestedURL":"https://www.ebi.ac.uk/proteins/api/uniparc/sequence?rfActive=true","errorMessage":["Cannot invoke \\"uk.ac.ebi.uniprot.dataservice.restful.uniparc.UniparcSequenceParam.getSequence()\\" because \\"sequence\\" is null"]}'
+"""
 uniparc_sequence = {
     'good': [
         {'rfActive': 'true'}, 
         {'rfActive': 'false'}, 
         {'rfDbid': 'AAC02967,XP_006524055'}, 
         {'rfDdtype': 'EMBL,RefSeq,Ensembl'}, 
-             
      ],
     'bad': [
+        {'rfActive': True}, 
         {'rfActive': 'xxxxxxx'}, 
         {'rfTaxId': 'xxxxxx'}, 
         {'x': 'xxxxxx'}, 
