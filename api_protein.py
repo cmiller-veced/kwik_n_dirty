@@ -12,31 +12,11 @@ from tools import (
     retry_call,
     extract_from_dict_list,
     dvalidator,
+    LocalValidationFailure,
 )
 
-
-def parameters_to_schema(parameters):
-    pr = parameter_required(parameters)
-    return {
-        'required': [key for key in pr if pr[key]],
-        'properties': parameter_schemas(parameters), 
-        'additionalProperties': False, 
-        'type': 'object', 
-        }
-
-
-def parameter_locations(parameters):
-    return extract_from_dict_list(parameters, 'in')
-
-def parameter_schemas(parameters):
-    return extract_from_dict_list(parameters, 'schema')
-
-def parameter_required(parameters):
-    return extract_from_dict_list(parameters, 'required')
-
-
-class LocalValidationFailure(Exception): pass
 class NonTruthy(LocalValidationFailure): pass
+
 class InvalidAccessionId(LocalValidationFailure): pass
 
 
@@ -47,6 +27,16 @@ def local_validate(params):
         raise NonTruthy(params)
     if params == {'accession': 'xxxxxxxx'}:
         raise InvalidAccessionId(params)
+
+
+def parameters_to_schema(parameters):
+    pr = extract_from_dict_list(parameters, 'required')
+    return {
+        'required': [key for key in pr if pr[key]],
+        'properties': extract_from_dict_list(parameters, 'schema'), 
+        'additionalProperties': False, 
+        'type': 'object', 
+        }
 
 
 def protein_validator(endpoint, verb='get'):
@@ -73,7 +63,7 @@ def prepped(endpoint, verb, args):
     """
     rs = altered_raw_swagger(local.swagger.protein)
     paths = jsonref.loads(json.dumps(rs))['paths']
-    location = parameter_locations(paths[endpoint][verb]['parameters'])
+    location = extract_from_dict_list(paths[endpoint][verb]['parameters'], 'in')
     request_params = {}
     query = {}
     for arg in args:
@@ -133,9 +123,6 @@ def protein_validate_and_call():
                         bad_param_but_ok[(endpoint, verb)].append(params)
     bad_param_but_ok = dict(bad_param_but_ok)
     good_param_not_ok = dict(good_param_not_ok)
-    # TODO: local validation.  eg, prevent {}, etc.
-    # TODO: start here.........
-    # with local validation.
   finally:
     globals().update(locals())
 
@@ -148,5 +135,4 @@ def test_altered_raw_swagger():
 
 # aside #
 ##############################################################################
-
 

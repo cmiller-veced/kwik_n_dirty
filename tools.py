@@ -476,6 +476,8 @@ class DotDict(dict):
     __delattr__ = dict.__delitem__
 
 
+class LocalValidationFailure(Exception): pass
+
 def dvalidator(local_validate): 
     def local_is_valid(params):
         try:
