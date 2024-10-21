@@ -1,24 +1,5 @@
 # readme
 
-The landscape is crowded with Python validation libraries.  Why would I create
-another one?  Because...
-
-1.  It's obviously not a definitively solved problem
-B.  I have a different way of doing it.
-
-A big part of the new vision is eliminating needless transformation.  So things
-like DAOs have no place in it.  Yes, I'm saying a DAO is a needless
-transformation.  Maybe not always, but I've yet to see a needful one.  If you
-think about it, you will notice that the only benefit of the average DAO is the
-dot notation for attribute access.  You don't need DAO for that.  If we need it
-we will do it, without resorting to the LCD that is DAO.
-
-- LCD:  lowest common denominator
-
-btw.  It's not so much a data validation library as a set of techniques for
-accessing APIs.  Validation is part of it, but by no means the primary focus.
-Important, yes, but not the center of the universe.
-
 
 A tool for quickly creating high quality API clients (SDKs).  Initial target APIs are
 those defined in Swagger/OpenAPI.
@@ -641,6 +622,25 @@ That complex way of doing nothing.
 ```
 
 
+#### why?
 
+The landscape is crowded with Python validation libraries.  Why would I create
+another one?  Because...
+
+1.  It's obviously not a definitively solved problem
+B.  I have a different way of doing it.
+
+A big part of the new vision is eliminating needless transformation.  So things
+like DAOs have no place in it.  Yes, I'm saying a DAO is a needless
+transformation.  Maybe not always, but I've yet to see a needful one.  If you
+think about it, you will notice that the only benefit of the average DAO is the
+dot notation for attribute access.  You don't need DAO for that.  If we need it
+we will do it, without resorting to the LCD that is DAO.
+
+- LCD:  lowest common denominator
+
+btw.  It's not so much a data validation library as a set of techniques for
+accessing APIs.  Validation is part of it, but by no means the primary focus.
+Important, yes, but not the center of the universe.
 
 
