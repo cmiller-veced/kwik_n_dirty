@@ -1,4 +1,4 @@
-
+from datetime import datetime
 from info import local
 from tools import ( LocalValidationError,)
 from test_data_nws import test_parameters, sample_query_params
@@ -6,7 +6,10 @@ from other import (prep_func, parameters_to_schema, dv, dcall,)
 # TODO: change some of the `other` names.
 
 
+fmt = '%Y-%m-%dT%H:%M:%S+00:00'
+
 class DateOrderError(LocalValidationError): pass
+class FooError(LocalValidationError): pass
 
 
 def local_validate(params):
@@ -16,33 +19,56 @@ def local_validate(params):
         'start': '2024-09-17T18:39:00+00:00', 
         'end':   '2024-09-18T18:39:00+00:00',
     }
-    time_words = ['start', 'end']
     """
     if 'start' in params and 'end' in params:
-        if datetime(params['start']) > datetime(params['end']): 
+        start = params['start']
+        end = params['end']
+        if datetime.strptime(start, fmt) > datetime.strptime(end, fmt): 
             raise DateOrderError(start, end)
 
 
+# TODO: must read the REFERENCED jdoc   DONE.
+# # TODO: Looks like it will actually be easy to make it like protein swagger.
+# Simply extend get['parameters'] with prams.
 def altered_raw_swagger(jdoc):
     """Alter raw data to conform with local code assumptions.
     This function takes a swagger doc as a json and returns json.
     """
-    patch = dict(parameters=[])
-#    jdoc['paths']['/das/s4entry']['get'].update(patch)
-#    jdoc['paths']['/']['get'].update(patch)
+    for endpoint in jdoc['paths']:
+        epdoc = jdoc['paths'][endpoint]
+        assert 'get' in epdoc
+        assert 'parameters' in epdoc['get']
+        if 'parameters' in epdoc:
+            #            eprams = epdoc['parameters']
+            eprams = jdoc['paths'][endpoint].pop('parameters')
+            jdoc['paths'][endpoint]['get']['parameters'].extend(eprams)
     return jdoc
+
+        
+#         verbs = sorted(list(jdoc['paths'][endpoint]))
+#         if verbs == ['get', 'parameters']:
+#             prams = jdoc['paths'][endpoint]['parameters']
+#             get = jdoc['paths'][endpoint]['get']
+#             # TODO: fooeeey!!!!!!!!!!
+#             # The differing thingies are probably related to location;
+#             # path vs query.
+#             # TODO: decide if I really want to go with the protein scheme.
+#             globals().update(locals())
+#             print(endpoint, verbs)
+#             assert get['parameters'] == []
+#             assert prams != []
+
 
 
 def head_func(endpoint, verb):
-    """nws requires user-agent header   Returns 403 otherwise.
-    heads = {'host': 'api.weather.gov', 'accept': '*/*', 'accept-encoding': 'gzip, deflate', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.27.2'}
+    """nws requires user-agent header.   Returns 403 otherwise.
     """
     return {'user-agent': 'python-httpx/0.27.2'}
 
 
+# TODO: further streamlining.
 _validator = dv(local.swagger.nws, local_validate, altered_raw_swagger)
 call = dcall(local, head_func, altered_raw_swagger)
-#prepped = prep_func(local.api_base.nws, local.swagger.nws, altered_raw_swagger)
 
 
 def nws_call(endpoint, params=None):
@@ -58,28 +84,33 @@ from tools import (
     raw_swagger, 
     insert_endpoint_params,
 )
+import other
 
 # TODO: clarify messaging.
 def x_validate_and_call():
   try:
     bad_param_but_ok = defaultdict(list)
     good_param_not_ok = defaultdict(list)
-    jdoc = raw_swagger(local.swagger.nws)
+    jdoc = raw_swagger(local.swagger.nws)  # TODO: pass flag for deref vs not.?
+    jdoc = jsonref.loads(json.dumps(jdoc))
     paths = altered_raw_swagger(jdoc)['paths']
     for endpoint in paths:
         for verb in paths[endpoint]:
-            assert verb in 'get post'
+            #            assert verb in 'get post'
+            #            assert verb in 'get post'
             validator = _validator(endpoint, verb)
             print(endpoint, verb)
             if endpoint in test_parameters:
                 things = test_parameters[endpoint]
                 for params in things['good']:
-                    assert validator.is_valid(params)
+                    if not validator.is_valid(params):
+                        validator.validate(params)
+
                     print('   ok good valid', params)
                     response = call(endpoint, verb, params)
                     if not response.is_success:
                         good_param_not_ok[(endpoint, verb)].append(params)
-                        raise LocalValidationError(params)
+                        raise FooError(params)
                     if response.is_success:
                         print('   ok good call')
                 for params in things['bad']:
@@ -257,3 +288,4 @@ class NWS:
 nws = NWS()
 
 
+heads = {'host': 'api.weather.gov', 'accept': '*/*', 'accept-encoding': 'gzip, deflate', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.27.2'}

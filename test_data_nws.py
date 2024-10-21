@@ -35,21 +35,24 @@ active_alerts = {
 # And distinguish validation error from endpoint error.
 # for example with this ill-behaved endpoint ....
 # /zones/forecast/{zoneId}/stations
+
+
+#        { 'zoneId': 'WYZ433', },   # 500
+"""
+>>> print(response.text)
+{
+    "correlationId": "4388435f",
+    "title": "Unexpected Problem",
+    "type": "https://api.weather.gov/problems/UnexpectedProblem",
+    "status": 500,
+    "detail": "An unexpected problem has occurred. If this error continues, please contact support at nco.ops@noaa.gov.",
+    "instance": "https://api.weather.gov/requests/4388435f"
+}
+"""
+
+
 zones_and_limits = {
     'good': [
-        #{ 'zoneId': 'WYZ433', },   # 400 Bad Request
-        { 'zone': 'WYZ433', },   # 400 Bad Request
-        #        {  },   # valid but 500 Internal Server Error
-        #        {
-            #            'zoneId': 'WYZ433', 
-            #    'limit':   50,
-            #        },
-            #        { 'zoneId': 'WYZ433', },   # valid but 400 Bad Request
-
-            #            { 'limit':   5, },    # 500 error
-        # TODO: investigate
-        # 500 errors from /zones/forecast/{zoneId}/stations
-        #        { 'xxxx':   'yyyyyyy', },    # additionalProperties permitted
     ],
     'bad': [ 
         { 'limit':   '100', },
@@ -71,19 +74,23 @@ zones = {
 start_end_limit = {
     'good': [
         {
+            'stationId': 'CO100',
             'start': '2024-09-17T18:39:00+00:00', 
             'end':   '2024-09-18T18:39:00+00:00',
             'limit':   50,
         },
-        { 'start': '2024-09-17T18:39:00+00:00', },
-        { 'end': '2024-09-17T18:39:00+00:00', },
-        { 'limit':   50, },
-        {  },
-        {
-            'start': '2024-09-17T18:39:00+00:00', 
-            'end':   '2024-09-18T18:39:00+00:00',
-            'limit':   '100', 
-        },
+        { 'start': '2024-09-17T18:39:00+00:00', 
+            'stationId': 'CO100',
+         },
+        { 'end': '2024-09-17T18:39:00+00:00', 
+            'stationId': 'CO100',
+         },
+        { 'limit':   50, 
+            'stationId': 'CO100',
+         },
+        {  
+            'stationId': 'CO100',
+         },
 
         #        { 'start': '20240000-09-17T18:39:00+00:00', },
         # but rejected by endpoint    400 Bad Request
@@ -96,6 +103,18 @@ start_end_limit = {
 
     ],
     'bad': [ 
+        {
+            'stationId': 'CO100',
+            'limit':   '100', 
+        },
+        {
+            'stationId': 'CO100',
+            'end':     '2024-09-17T18:39:00+00:00', 
+            'start':   '2024-09-18T18:39:00+00:00',
+            # end precedes start.  
+            # Caught by local validation but not by ordinary validation.
+        },
+
     ],
 }
 
