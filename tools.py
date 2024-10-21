@@ -11,6 +11,10 @@ from jsonschema import Draft7Validator
 import httpx
 
 
+def identity_func(x):
+    return x
+
+
 def altered_dict_list(list_of_dict, func):
     return [func(d) for d in copy.deepcopy(list_of_dict)]
 
@@ -445,14 +449,14 @@ class DotDict(dict):
     __delattr__ = dict.__delitem__
 
 
-class LocalValidationFailure(Exception): pass
+class LocalValidationError(Exception): pass
 
 def dvalidator(local_validate): 
     def local_is_valid(params):
         try:
             local_validate(params)
             return True
-        except LocalValidationFailure:
+        except LocalValidationError:
             return False
 
     class D7V(Draft7Validator):

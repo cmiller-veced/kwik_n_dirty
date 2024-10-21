@@ -1,92 +1,97 @@
-import json
-
-import httpx      # follow up to requests
-import jsonref     # cross platform
-from jsonschema import (     # cross platform
-    Draft7Validator,
-    FormatChecker,
-)
 
 from info import local
-from tools import (
-    raw_swagger, 
-    endpoint_names,
-    insert_endpoint_params,
-)
+from tools import ( LocalValidationError,)
 from test_data_nws import test_parameters, sample_query_params
-
-# TODO: fancy validators
-# eg start_date < end_date
-
-
-def schema_trans(schema_list):
-    return {'properties': {thing['name']: thing['schema'] for thing in schema_list} }
+from other import (prep_func, parameters_to_schema, dv, dcall,)
+# TODO: change some of the `other` names.
 
 
-def nws_validator(endpoint):
-    """Return a function to validata parameters for `endpoint`.
-    >>> params = dict(x=1)
-    >>> assert nws_validator('/foo/{bar}/bat')(params) is True
-    >>> is_valid = nws_validator('/foo/{bar}/bat')
-    >>> assert is_valid(params) is True
-    # TODO: consider name change.
+class DateOrderError(LocalValidationError): pass
+
+
+def local_validate(params):
+    """Catch data problems missed by the schema.
+    # eg start_date > end_date
+    params = {
+        'start': '2024-09-17T18:39:00+00:00', 
+        'end':   '2024-09-18T18:39:00+00:00',
+    }
+    time_words = ['start', 'end']
     """
-    rs = raw_swagger(local.swagger.nws)                              # global
-    with_refs = jsonref.loads(json.dumps(rs))
-    thing = with_refs['paths'][endpoint]
-    vinfo = thing['parameters'] if 'parameters' in thing else thing['get']['parameters']
-    schema = schema_trans(vinfo)     # NWS-specific
-    assert list(schema.keys()) == ['properties']
-#    print(endpoint, list(schema['properties'].keys()))
-    is_valid = lambda ob: Draft7Validator(schema, format_checker=FormatChecker()).is_valid(ob)
-    is_valid = Draft7Validator(schema, format_checker=FormatChecker()).is_valid
-#    is_valid.endpoint = endpoint
- #   is_valid.schema = schema
-    return is_valid
+    if 'start' in params and 'end' in params:
+        if datetime(params['start']) > datetime(params['end']): 
+            raise DateOrderError(start, end)
+
+
+def altered_raw_swagger(jdoc):
+    """Alter raw data to conform with local code assumptions.
+    This function takes a swagger doc as a json and returns json.
+    """
+    patch = dict(parameters=[])
+#    jdoc['paths']['/das/s4entry']['get'].update(patch)
+#    jdoc['paths']['/']['get'].update(patch)
+    return jdoc
+
+
+def head_func(endpoint, verb):
+    """nws requires user-agent header   Returns 403 otherwise.
+    heads = {'host': 'api.weather.gov', 'accept': '*/*', 'accept-encoding': 'gzip, deflate', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.27.2'}
+    """
+    return {'user-agent': 'python-httpx/0.27.2'}
+
+
+_validator = dv(local.swagger.nws, local_validate, altered_raw_swagger)
+call = dcall(local, head_func, altered_raw_swagger)
+#prepped = prep_func(local.api_base.nws, local.swagger.nws, altered_raw_swagger)
 
 
 def nws_call(endpoint, params=None):
-    with httpx.Client(base_url=local.api_base.nws) as client:
-        r = client.get(endpoint, params=params)
-        assert r.status_code == 200
-    return r.json()
+    return call(endpoint, 'get', params).json()
 
 
 # test
 # ############################################################################
 from functools import lru_cache
+from pprint import pprint
+from collections import defaultdict
+from tools import (
+    raw_swagger, 
+    insert_endpoint_params,
+)
 
-def nws_validate_and_call():
+# TODO: clarify messaging.
+def x_validate_and_call():
   try:
-    rs = raw_swagger(local.swagger.nws)                              # global
-    with httpx.Client(base_url=local.api_base.nws) as client:
-        for ep in endpoint_names(rs):
-            is_valid = nws_validator(ep)
-            print(ep)
-#            print(is_valid.endpoint)
-            ep0 = ep
-            if ep in test_parameters:
-                things = test_parameters[ep]
-                ep = insert_endpoint_params(ep, sample_query_params)
-                if ep0 != ep:
-                    print('   calling .............', ep)
+    bad_param_but_ok = defaultdict(list)
+    good_param_not_ok = defaultdict(list)
+    jdoc = raw_swagger(local.swagger.nws)
+    paths = altered_raw_swagger(jdoc)['paths']
+    for endpoint in paths:
+        for verb in paths[endpoint]:
+            assert verb in 'get post'
+            validator = _validator(endpoint, verb)
+            print(endpoint, verb)
+            if endpoint in test_parameters:
+                things = test_parameters[endpoint]
                 for params in things['good']:
-                    assert is_valid(params)
-                    print('   ok good', params)
-                    r = client.get(ep, params=params)
-                    assert r.status_code == 200
+                    assert validator.is_valid(params)
+                    print('   ok good valid', params)
+                    response = call(endpoint, verb, params)
+                    if not response.is_success:
+                        good_param_not_ok[(endpoint, verb)].append(params)
+                        raise LocalValidationError(params)
+                    if response.is_success:
+                        print('   ok good call')
                 for params in things['bad']:
-                    assert not is_valid(params)
-                    print('   ok bad', params)
-                    r = client.get(ep, params=params)
-                    assert r.status_code != 404    # Bad endpoint
-                    assert r.status_code in [400, 500]    # Bad Parameter
-                    # or Server Error
-                    # 500 from /zones/forecast/{zoneId}/stations
-                    # with {'limit': '100'}
+                    assert not validator.is_valid(params)
+                    print('   ok bad NOT valid', params)
+                    response = call(endpoint, verb, params)
+                    if response.is_success:
+                        bad_param_but_ok[(endpoint, verb)].append(params)
   finally:
+    bad_param_but_ok = dict(bad_param_but_ok)
+    good_param_not_ok = dict(good_param_not_ok)
     globals().update(locals())
-
 
 
 # NWS data ##################################################################
@@ -111,7 +116,6 @@ def stations():
     oz = js['observationStations']
     assert type(oz) is list
     assert oz[-1].endswith(ids[-1])   # duplicated info
-    globals().update(locals())
     return ids
 
 
@@ -180,6 +184,7 @@ def nws_series():
     # Insert stationId into endpoint path
     ep = insert_endpoint_params(ep1, locals())
 
+    import httpx      # follow up to requests
     # Call the endpoint and verify status_code.
     with httpx.Client(base_url=local.api_base.nws) as client:
         r = client.get(ep, params=params)
@@ -203,13 +208,14 @@ def nws_series():
     assert df.shape[1] == 15
     return df
   finally:
-    globals().update(locals())
-
+    pass
 
 
 # aside
 # ############################################################################
 
+import json
+import jsonref     # cross platform
 def get_component_schemas_nws():    # NWS
     rs = raw_swagger(local.swagger.nws)
     with_refs = jsonref.loads(json.dumps(rs))

@@ -6,11 +6,11 @@ from jsonschema import FormatChecker
 
 from info import local
 from tools import (raw_swagger, retry_call, extract_from_dict_list,
-    dvalidator, LocalValidationFailure,)
+    dvalidator, LocalValidationError,)
 
-class NonTruthy(LocalValidationFailure): pass
+class NonTruthy(LocalValidationError): pass
 
-class InvalidAccessionId(LocalValidationFailure): pass
+class InvalidAccessionId(LocalValidationError): pass
 
 
 def local_validate(params):
@@ -29,7 +29,7 @@ def parameters_to_schema(parameters):
         'properties': extract_from_dict_list(parameters, 'schema'), 
         'additionalProperties': False, 
         'type': 'object', 
-        }
+    }
 
 
 def protein_validator(endpoint, verb='get'):
@@ -106,7 +106,7 @@ def protein_validate_and_call():
                     response = call(endpoint, verb, params)
                     if not response.is_success:
                         good_param_not_ok[(endpoint, verb)].append(params)
-                        raise LocalValidationFailure(params)
+                        raise LocalValidationError(params)
                     if response.is_success:
                         print('   ok good call')
                 for params in things['bad']:

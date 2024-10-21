@@ -37,6 +37,8 @@ active_alerts = {
 # /zones/forecast/{zoneId}/stations
 zones_and_limits = {
     'good': [
+        #{ 'zoneId': 'WYZ433', },   # 400 Bad Request
+        { 'zone': 'WYZ433', },   # 400 Bad Request
         #        {  },   # valid but 500 Internal Server Error
         #        {
             #            'zoneId': 'WYZ433', 
