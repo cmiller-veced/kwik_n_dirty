@@ -27,8 +27,8 @@ def dv(swagger_path, local_validate=identity_func, altered_raw_swagger=identity_
         """
         jdoc = jsonref.loads(json.dumps(raw_swagger(swagger_path)))
         jdoc = altered_raw_swagger(jdoc)
+        parameters = jdoc['paths'][endpoint][verb]['parameters'] or {}
         globals().update(locals())
-        parameters = jdoc['paths'][endpoint][verb]['parameters']
         schema = parameters_to_schema(parameters)
         return dvalidator(local_validate)(schema, format_checker=FormatChecker())
     return validator
