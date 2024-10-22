@@ -132,16 +132,18 @@ type_ids = {
 product_ids = {
     'good': [
 
-        #        { 'productId': 'ZFP', },
-        # but rejected by endpoint    400 Bad Request
+#        { 'productId': 'BOU', },
+        # but rejected by endpoint    404 Not Found
+#        { 'productId': 'ZFP', },
+        # but rejected by endpoint    404 Not Found
 
         #        { 'productId': 'xxxxxx', },
         # but rejected by endpoint    400 Bad Request
 
-        #        'ZFP', 'x', 1, {}, []      # anything goes!!!!!!!!!!!
-
     ],
     'bad': [ 
+        'ZFP', 'x', 1, {}, [] 
+            # strangely, only the first one executes.
     ],
 }
 
@@ -153,5 +155,7 @@ test_parameters = {
     '/zones/forecast/{zoneId}/observations' : zones,
     '/zones/forecast/{zoneId}/stations' : zones_and_limits,
 } 
+# https://www.postman.com/api-evangelist/national-oceanic-and-atmospheric-administration-noaa/request/9hlbjhj/products-productid
+# Sadly, it has no actual data.
 
 

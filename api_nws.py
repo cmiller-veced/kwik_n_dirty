@@ -1,7 +1,7 @@
 from datetime import datetime
 from info import local
 from tools import ( LocalValidationError,)
-from test_data_nws import test_parameters, sample_query_params
+from test_data_nws import test_parameters   #, sample_query_params
 from other import (prep_func, parameters_to_schema, dv, dcall,)
 # TODO: change some of the `other` names.
 
@@ -9,7 +9,7 @@ from other import (prep_func, parameters_to_schema, dv, dcall,)
 fmt = '%Y-%m-%dT%H:%M:%S+00:00'
 
 class DateOrderError(LocalValidationError): pass
-class FooError(LocalValidationError): pass
+class ValidDataBadResponse(LocalValidationError): pass
 
 
 def local_validate(params):
@@ -27,9 +27,6 @@ def local_validate(params):
             raise DateOrderError(start, end)
 
 
-# TODO: must read the REFERENCED jdoc   DONE.
-# # TODO: Looks like it will actually be easy to make it like protein swagger.
-# Simply extend get['parameters'] with prams.
 def altered_raw_swagger(jdoc):
     """Alter raw data to conform with local code assumptions.
     This function takes a swagger doc as a json and returns json.
@@ -39,27 +36,11 @@ def altered_raw_swagger(jdoc):
         assert 'get' in epdoc
         assert 'parameters' in epdoc['get']
         if 'parameters' in epdoc:
-            #            eprams = epdoc['parameters']
-            eprams = jdoc['paths'][endpoint].pop('parameters')
+            eprams = epdoc.pop('parameters')
             jdoc['paths'][endpoint]['get']['parameters'].extend(eprams)
     return jdoc
 
         
-#         verbs = sorted(list(jdoc['paths'][endpoint]))
-#         if verbs == ['get', 'parameters']:
-#             prams = jdoc['paths'][endpoint]['parameters']
-#             get = jdoc['paths'][endpoint]['get']
-#             # TODO: fooeeey!!!!!!!!!!
-#             # The differing thingies are probably related to location;
-#             # path vs query.
-#             # TODO: decide if I really want to go with the protein scheme.
-#             globals().update(locals())
-#             print(endpoint, verbs)
-#             assert get['parameters'] == []
-#             assert prams != []
-
-
-
 def head_func(endpoint, verb):
     """nws requires user-agent header.   Returns 403 otherwise.
     """
@@ -85,6 +66,7 @@ from tools import (
     insert_endpoint_params,
 )
 import other
+from other import NonDictArgs
 
 # TODO: clarify messaging.
 def x_validate_and_call():
@@ -110,13 +92,21 @@ def x_validate_and_call():
                     response = call(endpoint, verb, params)
                     if not response.is_success:
                         good_param_not_ok[(endpoint, verb)].append(params)
-                        raise FooError(params)
+                        raise ValidDataBadResponse(params)
                     if response.is_success:
                         print('   ok good call')
                 for params in things['bad']:
                     assert not validator.is_valid(params)
                     print('   ok bad NOT valid', params)
-                    response = call(endpoint, verb, params)
+                    try:
+                        # TODO: re-extract prepped args.   ?????
+                        # NO.
+                        # Maybe.
+                        # But first get accustomed to debugging as-is.
+                        # Should have better visibility there.
+                        response = call(endpoint, verb, params)
+                    except NonDictArgs:
+                        break
                     if response.is_success:
                         bad_param_but_ok[(endpoint, verb)].append(params)
   finally:
