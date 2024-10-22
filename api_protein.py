@@ -8,6 +8,10 @@ from info import local
 from tools import (raw_swagger, retry_call, extract_from_dict_list,
     dvalidator, LocalValidationError,)
 
+from other import (prep_func, parameters_to_schema, dv, dcall,)
+
+class ValidDataBadResponse(LocalValidationError): pass
+
 class NonTruthy(LocalValidationError): pass
 
 class InvalidAccessionId(LocalValidationError): pass
@@ -22,62 +26,23 @@ def local_validate(params):
         raise InvalidAccessionId(params)
 
 
-def parameters_to_schema(parameters):
-    pr = extract_from_dict_list(parameters, 'required')
-    return {
-        'required': [key for key in pr if pr[key]],
-        'properties': extract_from_dict_list(parameters, 'schema'), 
-        'additionalProperties': False, 
-        'type': 'object', 
-    }
-
-
-def protein_validator(endpoint, verb='get'):
-    """Return a validator for `(endpoint, verb)`.
-    """
-    jdoc = jsonref.loads(json.dumps(altered_raw_swagger(local.swagger.protein)))
-    parameters = jdoc['paths'][endpoint][verb]['parameters']
-    schema = parameters_to_schema(parameters)
-    return dvalidator(local_validate)(schema, format_checker=FormatChecker())
-
-
-@retry_call()
-def call(endpoint, verb, params):
-    """Call (endpoint, verb) with params.
-    """
-    (url, verb, request_params) = prepped(endpoint, verb, params)
-    request = httpx.Request(verb, url, **request_params)
-    with httpx.Client(base_url=local.api_base.protein) as client:
-        return client.send(request)  
-
-
-def prepped(endpoint, verb, args):
-    """Prepare args for passing to (endpoint, verb).
-    """
-    rs = altered_raw_swagger(local.swagger.protein)
-    paths = jsonref.loads(json.dumps(rs))['paths']
-    location = extract_from_dict_list(paths[endpoint][verb]['parameters'], 'in')
-    request_params = {}
-    query = {}
-    for arg in args:
-        plocation = location[arg] if arg in location else 'query'
-        if plocation == 'path':
-            endpoint = endpoint.replace('{'+arg+'}', str(args[arg]))
-        elif plocation == 'query':
-            query[arg] = args[arg]
-    if query:
-        request_params['params'] = query
-    return (local.api_base.protein + endpoint, verb, request_params)
-
-
-def altered_raw_swagger(swagger_path):
+#def altered_raw_swagger(swagger_path):
+def altered_raw_swagger(jdoc):
     """Alter raw data to conform with local code assumptions.
     """
-    jdoc = raw_swagger(swagger_path)
     patch = dict(parameters=[])
     jdoc['paths']['/das/s4entry']['get'].update(patch)
     jdoc['paths']['/']['get'].update(patch)
     return jdoc
+
+
+def head_func(endpoint, verb):
+    return {}
+
+
+# TODO: further streamlining.
+protein_validator = dv(local.swagger.protein, local_validate, altered_raw_swagger)
+call = dcall(local.api_base.protein, local.swagger.protein, head_func, altered_raw_swagger)
 
 
 # test test test test test test test test test test test test test test test
@@ -92,7 +57,9 @@ def protein_validate_and_call():
   try:
     bad_param_but_ok = defaultdict(list)
     good_param_not_ok = defaultdict(list)
-    paths = altered_raw_swagger(local.swagger.protein)['paths']       # protein
+    rs = raw_swagger(local.swagger.protein)
+    paths = altered_raw_swagger(rs)['paths']
+#    paths = altered_raw_swagger(local.swagger.protein)['paths']       # protein
     for endpoint in paths:
         for verb in paths[endpoint]:
             assert verb in 'get post'
@@ -106,7 +73,24 @@ def protein_validate_and_call():
                     response = call(endpoint, verb, params)
                     if not response.is_success:
                         good_param_not_ok[(endpoint, verb)].append(params)
-                        raise LocalValidationError(params)
+                        raise ValidDataBadResponse(params)
+                        """
+                        {'rfActive': 'true'}   Returns a bad response.
+                        {'rfActive': True}   Fails validation.
+                        {'rfActive': True}   Returns a good response?
+                        BUT This fucked.
+                        The httpx (or some other Python lib) insists on using
+                        True instead of 'true'.
+                        But what the api actually wants is 'true', the json
+                        version of True.
+                        NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO 
+                        NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO 
+                        NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO NO 
+                        The above returns a 500 response.
+                        I have no idea if it is because of 'true' vs True.
+                        But I think NOT.
+                        Look at the test data.  It shows the response.
+                        """
                     if response.is_success:
                         print('   ok good call')
                 for params in things['bad']:
