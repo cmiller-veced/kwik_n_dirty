@@ -6,8 +6,7 @@
 from test_data_libre import test_parameters
 import json
 
-import httpx      # similar to R data frames
-import pandas      # similar to R data frames
+import httpx      # 
 import jsonref     # cross platform
 import jsonschema     # cross platform
 from jsonschema import validate     # cross platform
