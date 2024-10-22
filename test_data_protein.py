@@ -36,17 +36,22 @@ das_s4entry = {
     'bad': [{'x':''}, {}],
 }
 
-"""
-<Response [500 Internal Server Error]>
->>> response.text
-'{"requestedURL":"https://www.ebi.ac.uk/proteins/api/uniparc/sequence?rfActive=true","errorMessage":["Cannot invoke \\"uk.ac.ebi.uniprot.dataservice.restful.uniparc.UniparcSequenceParam.getSequence()\\" because \\"sequence\\" is null"]}'
-"""
 uniparc_sequence = {
     'good': [
-        {'rfActive': 'true'}, 
-        {'rfActive': 'false'}, 
-        {'rfDbid': 'AAC02967,XP_006524055'}, 
-        {'rfDdtype': 'EMBL,RefSeq,Ensembl'}, 
+#         {'rfActive': 'true'}, 
+#         """
+#         <Response [500 Internal Server Error]>
+#         >>> response.text
+#         '{"requestedURL":"https://www.ebi.ac.uk/proteins/api/uniparc/sequence?rfActive=true","errorMessage":["Cannot invoke \\"uk.ac.ebi.uniprot.dataservice.restful.uniparc.UniparcSequenceParam.getSequence()\\" because \\"sequence\\" is null"]}'
+#         """
+
+#         {'rfActive': 'false'}, 
+#        {'rfDbid': 'AAC02967,XP_006524055'},   # but returns 500 error
+#         """
+# '{"requestedURL":"https://www.ebi.ac.uk/proteins/api/uniparc/sequence?rfDbid=AAC02967,XP_006524055","errorMessage":["Cannot invoke \\"uk.ac.ebi.uniprot.dataservice.restful.uniparc.UniparcSequenceParam.getSequence()\\" because \\"sequence\\" is null"]}'
+#         """
+
+#        {'rfDdtype': 'EMBL,RefSeq,Ensembl'}, 
      ],
     'bad': [
         {'rfActive': True}, 
