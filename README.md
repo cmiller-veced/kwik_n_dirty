@@ -18,12 +18,11 @@ DONE
 
 Other tasks present themselves as we go.  Navigating json data is tedious
 without good tools so we create the tools as we go.
-Yes, I know there are tools out there already.  But I want GOOD tools.
 
 
 # How to do it?
 
-We follow principles that I've learned by studying ...
+We follow principles of ...
 
 - the Unix Philosophy
 - the Agile Manifesto
@@ -45,6 +44,24 @@ Our target users are people who understand the swagger.  The goal is to remove
 the need for the programmer between the data analyst and the data.
 
 Our system will be intuitive for data analysts.
+
+### You
+
+You are familiar with the API.  Are comfortable reading the Swagger Doc
+description.  Are comfortable using Postman to access the API.
+
+
+### Similar tools
+
+- Swagger Doc
+- Postman
+
+The project takes an approach similar to both of the above.  You get access to
+the (endpoint, verb) with the ability to send and recieve json.
+
+
+### More...
+
 
 We pull data from swagger and use it.  Unfortunately, swagger files often
 contain errors so a pre-processing step(s) is required.
