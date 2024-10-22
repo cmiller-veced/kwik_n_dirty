@@ -86,16 +86,16 @@ def prep_func(api_base,
         globals().update(locals())
     return prepped
 
-# TODO: add something to add headers to a fiw random endpoints to illustrate.
+# TODO: add something to add headers to a few random endpoints to illustrate.
 # Maybe.
 # TODO: no need to test with bad params????????//
 # Because those should be caught by validation...
 
 
-def dcall(local, head_func=None, altered_raw_swagger=identity_func):
+def dcall(api_base, swagger_path, head_func=None, altered_raw_swagger=identity_func):
     """
     """
-    prepped = prep_func(local.api_base.nws, local.swagger.nws, altered_raw_swagger)
+    prepped = prep_func(api_base, swagger_path, altered_raw_swagger)
     @retry_call()
     def call(endpoint, verb, params):
         """Call (endpoint, verb) with params.
