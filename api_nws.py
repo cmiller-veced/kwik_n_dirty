@@ -47,9 +47,9 @@ def head_func(endpoint, verb):
     return {'user-agent': 'python-httpx/0.27.2'}
 
 
-# TODO: further streamlining.
+# TODO: further streamlining.   But not too much.
 _validator = dv(local.swagger.nws, local_validate, altered_raw_swagger)
-call = dcall(local, head_func, altered_raw_swagger)
+call = dcall(local.api_base.nws, local.swagger.nws, head_func, altered_raw_swagger)
 
 
 def nws_call(endpoint, params=None):
