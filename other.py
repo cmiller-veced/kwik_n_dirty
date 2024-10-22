@@ -67,8 +67,8 @@ def prep_func(api_base,
         jdoc = jsonref.loads(json.dumps(jdoc))
         rs = altered_raw_swagger(jdoc)   # TODO: must alter AFTER deref.
         paths = rs['paths']
-#        paths = jsonref.loads(json.dumps(rs))['paths']
-        location = extract_from_dict_list(paths[endpoint][verb]['parameters'], 'in')
+        ev_params = paths[endpoint][verb]['parameters'] or {}
+        location = extract_from_dict_list(ev_params, 'in')
         request_params = {}
         query = {}
         for arg in args:

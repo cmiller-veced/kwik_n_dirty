@@ -450,6 +450,7 @@ class DotDict(dict):
 
 
 class LocalValidationError(Exception): pass
+# TODO: rm  NO
 
 def dvalidator(local_validate): 
     def local_is_valid(params):
