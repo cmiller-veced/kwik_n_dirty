@@ -50,6 +50,21 @@ Our system will be intuitive for data analysts.
 You are familiar with the API.  Are comfortable reading the Swagger Doc
 description.  Are comfortable using Postman to access the API.
 
+If you are familiar with either the Swagger Doc or Postman, my code will look
+familiar. 
+
+
+### Why does it look familiar?
+
+Because the three of us...
+
+- Swagger Doc
+- Postman
+- me
+
+have noticed that an API is all about interacting with (endpoint, verb) pairs.
+The code is written in a way to keep the focus on that.
+
 
 ### Similar tools
 
@@ -57,7 +72,41 @@ description.  Are comfortable using Postman to access the API.
 - Postman
 
 The project takes an approach similar to both of the above.  You get access to
-the (endpoint, verb) with the ability to send and recieve json.
+the (endpoint, verb) with the ability to send and recieve data.
+
+
+### Drinking glasses
+
+Square drinking glasses (and other exotic shapes) are fun to look at, and great
+fun for the designer, but not ergonomic.
+Same for DAOs.  It's not the shape of your data.
+
+exotic...
+
+- square
+- flower shape, flaring out at the top.
+- tall and narrow
+- short and squat
+
+### Needless transformation
+
+xxxx
+
+### Translation
+
+From json to DAO.  Translation is an interesting programming problem.  But if it
+is not your core business, why are you doing it?
+There are many things one can say about DAO.  There is one thing I can say for
+certain about it.  It is not solving your business problem.
+
+The "best practice" in software engineering is to begin with the assumption that
+the data needs to be translated into DAO.
+This assumption is unwarrented.
+                   ridiculous
+                   absurd
+                   unexamined
+Assumptions in code should be stated explicitly.
+Caveat.  Sometimes DAO is a good approach, or even ideal.  Explain...
 
 
 ### More...
