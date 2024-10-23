@@ -1,5 +1,11 @@
 
 
+#def identity_func(x): return x
+
+
+def altered_dict_list(list_of_dict, func):
+    return [func(d) for d in copy.deepcopy(list_of_dict)]
+
 
 
 def preprocess_schemas(schemas):

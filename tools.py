@@ -1,14 +1,10 @@
 import time
 import json
 import os
-from functools import singledispatch  # for heterogeneous recursive data structure
-from types import SimpleNamespace
-import copy
 
 import yaml
-from jinja2 import Environment, PackageLoader, select_autoescape     # cross platform
-from jsonschema import Draft7Validator
 import httpx
+from jsonschema import Draft7Validator
 
 
 class LocalValidationError(Exception): pass
@@ -17,10 +13,6 @@ class LocalValidationError(Exception): pass
 
 def identity_func(x):
     return x
-
-
-def altered_dict_list(list_of_dict, func):
-    return [func(d) for d in copy.deepcopy(list_of_dict)]
 
 
 def extract_from_dict_list(list_of_dict, key):

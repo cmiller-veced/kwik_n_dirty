@@ -1,3 +1,8 @@
+"""
+Deprecated
+use nother.py
+"""
+# TODO: deprecated
 import json
 import jsonref
 from jsonschema import FormatChecker
@@ -9,6 +14,9 @@ from tools import (dvalidator, raw_swagger, identity_func,
                    )
 
 
+class NonDictArgs(Exception): pass
+
+
 def parameters_to_schema(parameters):
     pr = extract_from_dict_list(parameters, 'required')
     return {
@@ -18,8 +26,8 @@ def parameters_to_schema(parameters):
         'type': 'object', 
     }
 
+# TODO: deprecated
 
-# TODO: reorder args so we can default to foo=identity_func
 # TODO: We do need the altered swagger here.
 def dv(swagger_path, local_validate=identity_func, altered_raw_swagger=identity_func,):
     def validator(endpoint, verb='get'):
@@ -34,26 +42,11 @@ def dv(swagger_path, local_validate=identity_func, altered_raw_swagger=identity_
     return validator
 
 
-# TODO: I think we do NOT need altered_raw_swagger here.
-# NO.
-# I think we do need it because of
-# location = extract_from_dict_list(paths[endpoint][verb]['parameters'], 'in')
-# TODO: Is there some way to reduce the number of calls to altered_raw_swagger?
-# or not really the number of calls, but the number of times it appears as
-# a parameter.
-
-class NonDictArgs(Exception): pass
-
-# TODO: add headers to `prepped`       NO!!!!!!!!
+# TODO: deprecated
 def prep_func(api_base, 
               swagger_path, 
               altered_raw_swagger=identity_func,
-              #              headers=None
     ):
-#     """
-#     headers is a function that accepts (endpoint, verb) and returns header(s) as
-#     json/dict.
-#     """
     def prepped(endpoint, verb, args):
       try:
         """Prepare args for passing to (endpoint, verb).
@@ -79,19 +72,20 @@ def prep_func(api_base,
                 query[arg] = args[arg]
         if query:
             request_params['params'] = query
-#        heads = headers(endpoint, verb) if headers else None
-#        return (api_base + endpoint, verb, request_params, heads)
         return (api_base + endpoint, verb, request_params)
       finally:
         globals().update(locals())
     return prepped
 
+# TODO: deprecated
 # TODO: add something to add headers to a few random endpoints to illustrate.
 # Maybe.
 # TODO: no need to test with bad params????????//
 # Because those should be caught by validation...
+# TODO: deprecated
 
 
+# TODO: deprecated
 def dcall(api_base, swagger_path, head_func=None, altered_raw_swagger=identity_func):
     """
     """
@@ -100,10 +94,7 @@ def dcall(api_base, swagger_path, head_func=None, altered_raw_swagger=identity_f
     def call(endpoint, verb, params):
         """Call (endpoint, verb) with params.
         """
-        if head_func:
-            heads = head_func(endpoint, verb)
-        else:
-            heads = None
+        heads = head_func(endpoint, verb) if head_func else None
         (url, verb, request_params) = prepped(endpoint, verb, params)
         request = httpx.Request(verb, url, **request_params, headers=heads)
         # TODO: return headers from `prepped`.
@@ -112,3 +103,4 @@ def dcall(api_base, swagger_path, head_func=None, altered_raw_swagger=identity_f
             return client.send(request)  
     return call
 
+# TODO: deprecated

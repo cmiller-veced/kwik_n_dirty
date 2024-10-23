@@ -11,6 +11,8 @@ from tools import (dvalidator, raw_swagger, identity_func,
 
 class ValidDataBadResponse(LocalValidationError): pass
 
+class NonDictArgs(Exception): pass
+
 
 def parameters_to_schema(parameters):
     pr = extract_from_dict_list(parameters, 'required')
@@ -22,10 +24,6 @@ def parameters_to_schema(parameters):
     }
 
 
-# TODO: reorder args so we can default to foo=identity_func
-# TODO: We do need the altered swagger here.
-#_validator = dv(config.swagger, config.validate, config.alt_swagger)
-#def dv(swagger_path, local_validate=identity_func, altered_raw_swagger=identity_func,):
 def dv(config):
     swagger_path = config.swagger_path
     local_validate = config.validate
@@ -41,16 +39,6 @@ def dv(config):
         return dvalidator(local_validate)(schema, format_checker=FormatChecker())
     return validator
 
-
-# TODO: I think we do NOT need altered_raw_swagger here.
-# NO.
-# I think we do need it because of
-# location = extract_from_dict_list(paths[endpoint][verb]['parameters'], 'in')
-# TODO: Is there some way to reduce the number of calls to altered_raw_swagger?
-# or not really the number of calls, but the number of times it appears as
-# a parameter.
-
-class NonDictArgs(Exception): pass
 
 # TODO: add headers to `prepped`       NO!!!!!!!!
 def prep_func(api_base, 
@@ -100,8 +88,6 @@ def prep_func(api_base,
 # Because those should be caught by validation...
 
 
-#call = dcall(config.api_base, config.swagger, config.head_func, config.alt_swagger)
-#def dcall(api_base, swagger_path, head_func=None, altered_raw_swagger=identity_func):
 def dcall(config):
     """
     """

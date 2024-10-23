@@ -1,12 +1,11 @@
 from datetime import datetime
 from info import local
 from tools import ( LocalValidationError,)
-from other import (prep_func, parameters_to_schema, dv, dcall,)
+from nother import (dv, dcall,)
 
-
-fmt = '%Y-%m-%dT%H:%M:%S+00:00'
 
 class DateOrderError(LocalValidationError): pass
+
 class ValidDataBadResponse(LocalValidationError): pass
 
 
@@ -18,6 +17,7 @@ def local_validate(params):
         'end':   '2024-09-18T18:39:00+00:00',
     }
     """
+    fmt = '%Y-%m-%dT%H:%M:%S+00:00'
     if 'start' in params and 'end' in params:
         start = params['start']
         end = params['end']
@@ -31,45 +31,34 @@ def altered_raw_swagger(jdoc):
     """
     x = jdoc['components']['parameters']['datasetid']
     jdoc['components']['parameters']['id_dataset'] = x
-
-#     for endpoint in jdoc['paths']:
-#         epdoc = jdoc['paths'][endpoint]
-#         assert 'get' in epdoc
-#         assert 'parameters' in epdoc['get']
-#         if 'parameters' in epdoc:
-#             eprams = epdoc.pop('parameters')
-#             jdoc['paths'][endpoint]['get']['parameters'].extend(eprams)
     return jdoc
 
-        
-def head_func(endpoint, verb):
-    return {}
+
+class config:
+    swagger_path = local.swagger.obis
+    api_base = local.api_base.obis
+    alt_swagger = altered_raw_swagger
+    head_func = lambda endpoint, verb: {}
+    validate = local_validate
 
 
-# TODO: further streamlining.   But not too much.
-_validator = dv(local.swagger.obis, local_validate, altered_raw_swagger)
-call = dcall(local.api_base.obis, local.swagger.obis, head_func, altered_raw_swagger)
+_validator = dv(config)
+call = dcall(config)
 
 
 # test
 # ############################################################################
-from functools import lru_cache
 from pprint import pprint
 from collections import defaultdict
-from tools import (
-    raw_swagger, 
-    insert_endpoint_params,
-)
+from tools import ( raw_swagger, )
 import json
 import jsonref
-import other
-from other import NonDictArgs
+import nother
+from nother import NonDictArgs
 from test_data_obis import test_parameters
 
-#from tools import namespacify
 
-
-def obis_validate_and_call():
+def validate_and_call():
   try:
     bad_param_but_ok = defaultdict(list)
     good_param_not_ok = defaultdict(list)
@@ -114,3 +103,5 @@ def obis_validate_and_call():
     globals().update(locals())
 
 
+if __name__ == '__main__':
+    validate_and_call()

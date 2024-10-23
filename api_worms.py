@@ -27,7 +27,7 @@ from nother import (NonDictArgs, ValidDataBadResponse,)
 from test_data_worms import test_parameters
 
 
-def worms_validate_and_call():
+def validate_and_call():
   try:
     bad_param_but_ok = defaultdict(list)
     good_param_not_ok = defaultdict(list)
@@ -66,3 +66,6 @@ def worms_validate_and_call():
     good_param_not_ok = dict(good_param_not_ok)
     globals().update(locals())
 
+
+if __name__ == '__main__':
+    validate_and_call()
