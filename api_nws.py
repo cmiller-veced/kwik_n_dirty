@@ -1,13 +1,12 @@
 from datetime import datetime
 from info import local
-from tools import ( LocalValidationError,)
+from tools import (LocalValidationError, ValidDataBadResponse, )
 from nother import dv, dcall
 # TODO: change some of the `other` names.
 
 
 class DateOrderError(LocalValidationError): pass
 
-class ValidDataBadResponse(LocalValidationError): pass
 
 
 def local_validate(params):

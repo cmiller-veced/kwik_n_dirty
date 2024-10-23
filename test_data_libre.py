@@ -4,15 +4,14 @@ detect = {
         { 'q': 'What language is this?', },
         { 'q': 'Que idioma es?', },
     ],
+    'bad': [],
 }
-detect['bad'] = []
 
 translate = {
     'good': [
         { 'q': 'What language is this?', 'source': 'en', 'target': 'es', },
     ],
-
-    'bad': detect['bad'],
+    'bad': [],
 }
 
 languages = {

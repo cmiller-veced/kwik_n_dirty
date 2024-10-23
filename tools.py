@@ -8,7 +8,8 @@ from jsonschema import Draft7Validator
 
 
 class LocalValidationError(Exception): pass
-# TODO: rm  NO
+
+class ValidDataBadResponse(LocalValidationError): pass
 
 
 def identity_func(x):

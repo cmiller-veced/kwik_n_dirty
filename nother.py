@@ -33,7 +33,13 @@ def dv(config):
         """
         jdoc = jsonref.loads(json.dumps(raw_swagger(swagger_path)))
         jdoc = altered_raw_swagger(jdoc)
-        parameters = jdoc['paths'][endpoint][verb]['parameters'] or {}
+        ev_info = jdoc['paths'][endpoint][verb]
+        globals().update(locals())
+#        parameters = ev_info['parameters'] or {}
+        if 'parameters' in ev_info:
+            parameters = ev_info['parameters'] or {}
+        else:
+            parameters = {}
         globals().update(locals())
         schema = parameters_to_schema(parameters)
         return dvalidator(local_validate)(schema, format_checker=FormatChecker())
@@ -101,10 +107,7 @@ def dcall(config):
     def call(endpoint, verb, params):
         """Call (endpoint, verb) with params.
         """
-        if head_func:
-            heads = head_func(endpoint, verb)
-        else:
-            heads = None
+        heads = head_func(endpoint, verb) if head_func else {}
         (url, verb, request_params) = prepped(endpoint, verb, params)
         request = httpx.Request(verb, url, **request_params, headers=heads)
         # TODO: return headers from `prepped`.
