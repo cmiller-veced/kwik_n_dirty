@@ -1,14 +1,12 @@
 from datetime import datetime
 from info import local
 from tools import ( LocalValidationError,)
-from test_data_nws import test_parameters   #, sample_query_params
-from other import (prep_func, parameters_to_schema, dv, dcall,)
+from nother import dv, dcall
 # TODO: change some of the `other` names.
 
 
-fmt = '%Y-%m-%dT%H:%M:%S+00:00'
-
 class DateOrderError(LocalValidationError): pass
+
 class ValidDataBadResponse(LocalValidationError): pass
 
 
@@ -20,6 +18,7 @@ def local_validate(params):
         'end':   '2024-09-18T18:39:00+00:00',
     }
     """
+    fmt = '%Y-%m-%dT%H:%M:%S+00:00'
     if 'start' in params and 'end' in params:
         start = params['start']
         end = params['end']
@@ -47,13 +46,16 @@ def head_func(endpoint, verb):
     return {'user-agent': 'python-httpx/0.27.2'}
 
 
-# TODO: further streamlining.   But not too much.
-_validator = dv(local.swagger.nws, local_validate, altered_raw_swagger)
-call = dcall(local.api_base.nws, local.swagger.nws, head_func, altered_raw_swagger)
+class config:
+    swagger_path = local.swagger.nws
+    api_base = local.api_base.nws
+    alt_swagger = altered_raw_swagger
+    head_func = head_func
+    validate = local_validate
 
 
-def nws_call(endpoint, params=None):
-    return call(endpoint, 'get', params).json()
+_validator = dv(config)
+call = dcall(config)
 
 
 # test
@@ -61,15 +63,13 @@ def nws_call(endpoint, params=None):
 from functools import lru_cache
 from pprint import pprint
 from collections import defaultdict
-from tools import (
-    raw_swagger, 
-    insert_endpoint_params,
-)
-import other
-from other import NonDictArgs
+from tools import ( raw_swagger, )
+import nother
+from nother import NonDictArgs
+from test_data_nws import test_parameters   #, sample_query_params
 
 # TODO: clarify messaging.
-def x_validate_and_call():
+def validate_and_call():
   try:
     bad_param_but_ok = defaultdict(list)
     good_param_not_ok = defaultdict(list)
@@ -116,6 +116,10 @@ def x_validate_and_call():
 
 
 # NWS data ##################################################################
+
+
+def nws_call(endpoint, params=None):
+    return call(endpoint, 'get', params).json()
 
 
 @lru_cache
@@ -179,6 +183,18 @@ def product_codes():
 # Fetch a data set suitable for a pandas dataframe.
 # ############################################################################
 import pandas      # similar to R data frames
+
+
+from jinja2 import Environment, select_autoescape 
+# TODO: remove in favor of newer thing.
+# endpoint_QUERY_params
+def insert_endpoint_params(endpoint, parameters):
+    if not '{' in endpoint:
+        return endpoint
+    env = Environment(autoescape=select_autoescape())
+    template = env.from_string(templatified(endpoint))
+    return template.render(**parameters)
+
 
 
 def nws_series():
@@ -279,3 +295,7 @@ nws = NWS()
 
 
 heads = {'host': 'api.weather.gov', 'accept': '*/*', 'accept-encoding': 'gzip, deflate', 'connection': 'keep-alive', 'user-agent': 'python-httpx/0.27.2'}
+
+
+if __name__ == '__main__':
+    validate_and_call()

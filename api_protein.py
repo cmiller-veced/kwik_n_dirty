@@ -1,14 +1,6 @@
-import json
-
-import httpx
-import jsonref
-from jsonschema import FormatChecker
-
 from info import local
-from tools import (raw_swagger, retry_call, extract_from_dict_list,
-    dvalidator, LocalValidationError,)
-
-from other import (prep_func, parameters_to_schema, dv, dcall,)
+from tools import (raw_swagger, LocalValidationError,)
+from nother import (dv, dcall,)
 
 class ValidDataBadResponse(LocalValidationError): pass
 
@@ -26,7 +18,6 @@ def local_validate(params):
         raise InvalidAccessionId(params)
 
 
-#def altered_raw_swagger(swagger_path):
 def altered_raw_swagger(jdoc):
     """Alter raw data to conform with local code assumptions.
     """
@@ -36,13 +27,16 @@ def altered_raw_swagger(jdoc):
     return jdoc
 
 
-def head_func(endpoint, verb):
-    return {}
+class config:
+    swagger_path = local.swagger.protein
+    api_base = local.api_base.protein
+    alt_swagger = altered_raw_swagger
+    head_func = lambda endpoint, verb: {}
+    validate = local_validate
 
 
-# TODO: further streamlining.
-protein_validator = dv(local.swagger.protein, local_validate, altered_raw_swagger)
-call = dcall(local.api_base.protein, local.swagger.protein, head_func, altered_raw_swagger)
+_validator = dv(config)
+call = dcall(config)
 
 
 # test test test test test test test test test test test test test test test
@@ -53,17 +47,16 @@ from collections import defaultdict
 
 
 # TODO: clarify messaging.
-def protein_validate_and_call():
+def validate_and_call():
   try:
     bad_param_but_ok = defaultdict(list)
     good_param_not_ok = defaultdict(list)
     rs = raw_swagger(local.swagger.protein)
     paths = altered_raw_swagger(rs)['paths']
-#    paths = altered_raw_swagger(local.swagger.protein)['paths']       # protein
     for endpoint in paths:
         for verb in paths[endpoint]:
             assert verb in 'get post'
-            validator = protein_validator(endpoint, verb)
+            validator = _validator(endpoint, verb)
             print(endpoint, verb)
             if endpoint in test_parameters:
                 things = test_parameters[endpoint]
@@ -114,3 +107,5 @@ def test_altered_raw_swagger():
 # aside #
 ##############################################################################
 
+if __name__ == '__main__':
+    validate_and_call()
